@@ -1,0 +1,27 @@
+{
+  "name": "tcf-vendor-validator",
+  "version": "0.1.0",
+  "description": "Utility script that verifies whether consent for specified TCF vendor is being collected by CMP across a list of websites.",
+  "main": "./run.js",
+  "bin": {
+    "tcf-vendor-validator": "./run.js"
+  },
+  "scripts": {
+    "start": "node ./run.js",
+    "test": "jest ./tests/*.js"
+  },
+  "keywords": [
+    "tcf",
+    "cmp",
+    "vendor"
+  ],
+  "author": "lusitdev",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "jest": "^30.1.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "playwright": "^1.55.0"
+  }
+}
