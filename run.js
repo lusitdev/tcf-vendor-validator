@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const { validateVendorConsent } = require('./src/validator');
 
 // Load default configuration
 const configPath = path.join(__dirname, 'config.yml');
@@ -22,10 +23,49 @@ if (!fs.existsSync(siteListPath)) {
   process.exit(1);
 }
 
-// Placeholder for the main validation logic
-console.log(`Starting validation for Vendor ID: ${vendorId}`);
-console.log(`Using site list: ${siteListPath}`);
+// Execute validation and save results
+async function main() {
+  console.log(`Starting TCF vendor consent validation for Vendor ID: ${vendorId}`);
+  console.log(`Using site list: ${siteListPath}`);
 
-// TODO: Implement the actual validation logic here
-// For now, just log the parameters
-console.log('Validation logic not yet implemented.');
+  try {
+    const results = await validateVendorConsent(vendorId, siteListPath);
+
+    // Save results to CSV in results/ directory
+    const csvContent = generateCSV(results);
+    const resultsDir = path.join(__dirname, 'results');
+    if (!fs.existsSync(resultsDir)) {
+      fs.mkdirSync(resultsDir);
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const csvPath = path.join(resultsDir, `validation-${vendorId}-${timestamp}.csv`);
+    fs.writeFileSync(csvPath, csvContent);
+
+    console.log(`Validation completed. Results saved to: ${csvPath}`);
+    console.log(`Processed ${results.length} sites`);
+  } catch (error) {
+    console.error('Validation failed:', error);
+    process.exit(1);
+  }
+}
+
+/**
+ * Generates CSV content from validation results.
+ * @param {Object[]} results - Array of validation result objects.
+ * @returns {string} CSV formatted string.
+ */
+function generateCSV(results) {
+  const headers = ['Site', 'Vendor ID', 'Has CMP', 'Consent Collected', 'Timestamp', 'Error'];
+  const rows = results.map(result => [
+    result.site,
+    result.vendorId,
+    result.hasCMP,
+    result.consentCollected,
+    result.timestamp,
+    result.error || ''
+  ]);
+
+  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+}
+
+main();
