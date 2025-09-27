@@ -26,11 +26,12 @@ function parseSiteList(filePath) {
  * @returns {string} CSV formatted string.
  */
 function generateCSV(results) {
-  const headers = ['Site', 'Vendor ID', 'Has CMP', 'Consent Collected', 'Timestamp', 'Error'];
+  const headers = ['Site', 'Vendor ID', 'Has TCF', 'CMP ID', 'Consent Collected', 'Timestamp', 'Error'];
   const rows = results.map(result => [
     result.site,
     result.vendorId,
-    result.hasCMP,
+    result.hasTCF,
+    result.cmpId || '',
     result.consentCollected,
     result.timestamp,
     result.error || ''

@@ -65,21 +65,29 @@ async function checkSiteForVendorConsent(page, site, vendorId) {
     // Navigate to site with timeout for network stability
     await page.goto(site, { waitUntil: 'networkidle', timeout: 30000 });
 
-    // TODO: Implement CMP detection logic
-    // Common CMPs: OneTrust, Cookiebot, Quantcast, etc.
-    // Look for CMP iframes, scripts, or API calls
+    // First check if TCF API is implemented
+    const hasTCF = await hasTCFAPI(page);
+    if (!hasTCF) {
+      return {
+        site,
+        vendorId,
+        hasTCF: false,
+        cmpId: null,
+        consentCollected: false,
+        timestamp: new Date().toISOString(),
+        error: null
+      };
+    }
 
-    // TODO: Check for vendor consent in CMP data
-    // This involves inspecting __tcfapi() calls or CMP storage
-
-    // Placeholder implementation
-    const hasCMP = await detectCMP(page);
-    const consentCollected = hasCMP ? await checkVendorConsent(page, vendorId) : false;
+    // TCF API is present, get CMP info and check for vendor consent
+    const cmpInfo = await getCMPInfo(page);
+    const consentCollected = await checkVendorConsent(page, vendorId);
 
     return {
       site,
       vendorId,
-      hasCMP,
+      hasTCF: true,
+      cmpId: cmpInfo ? cmpInfo.cmpId : null,
       consentCollected,
       timestamp: new Date().toISOString(),
       error: null
@@ -88,11 +96,48 @@ async function checkSiteForVendorConsent(page, site, vendorId) {
     return {
       site,
       vendorId,
-      hasCMP: false,
+      hasTCF: false,
+      cmpId: null,
       consentCollected: false,
       timestamp: new Date().toISOString(),
       error: error.message
     };
+  }
+}
+
+/**
+ * Checks if the TCF API (__tcfapi) is present on the page.
+ * @param {Page} page - Playwright page instance.
+ * @returns {Promise<boolean>} True if TCF API is detected.
+ */
+async function hasTCFAPI(page) {
+  try {
+    const hasAPI = await page.evaluate(() => {
+      return typeof window.__tcfapi === 'function';
+    });
+    return hasAPI;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Gets CMP information using TCF API ping command.
+ * @param {Page} page - Playwright page instance.
+ * @returns {Promise<Object|null>} CMP information or null if not available.
+ */
+async function getCMPInfo(page) {
+  try {
+    const cmpInfo = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        window.__tcfapi('ping', 2, (pingReturn, success) => {
+          resolve(success ? pingReturn : null);
+        });
+      });
+    });
+    return cmpInfo;
+  } catch {
+    return null;
   }
 }
 
@@ -127,24 +172,19 @@ async function detectCMP(page) {
 
 /**
  * Checks if consent has been collected for specific TCF vendor.
+ * Assumes TCF API is present (checked by hasTCFAPI).
  * @param {Page} page - Playwright page instance.
  * @param {number} vendorId - TCF vendor ID.
  * @returns {Promise<boolean>} True if consent collected for vendor.
  */
 async function checkVendorConsent(page, vendorId) {
-  // Placeholder: Implement actual TCF API checking
-  // This should check the __tcfapi() for vendor consent status
   try {
-    // Example: Check for TCF API presence and vendor consent
     const tcfData = await page.evaluate(() => {
-      if (window.__tcfapi) {
-        return new Promise((resolve) => {
-          window.__tcfapi('getTCData', 2, (tcData, success) => {
-            resolve(success ? tcData : null);
-          });
+      return new Promise((resolve) => {
+        window.__tcfapi('getTCData', 2, (tcData, success) => {
+          resolve(success ? tcData : null);
         });
-      }
-      return null;
+      });
     });
 
     if (tcfData && tcfData.vendor && tcfData.vendor.consents) {
