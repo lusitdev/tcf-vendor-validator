@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const { generateCSV } = require('./src/utils');
 const { validateVendorConsent } = require('./src/validator');
 
 // Load default configuration
@@ -47,25 +48,6 @@ async function main() {
     console.error('Validation failed:', error);
     process.exit(1);
   }
-}
-
-/**
- * Generates CSV content from validation results.
- * @param {Object[]} results - Array of validation result objects.
- * @returns {string} CSV formatted string.
- */
-function generateCSV(results) {
-  const headers = ['Site', 'Vendor ID', 'Has CMP', 'Consent Collected', 'Timestamp', 'Error'];
-  const rows = results.map(result => [
-    result.site,
-    result.vendorId,
-    result.hasCMP,
-    result.consentCollected,
-    result.timestamp,
-    result.error || ''
-  ]);
-
-  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
 }
 
 main();
