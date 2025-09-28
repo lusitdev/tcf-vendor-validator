@@ -42,7 +42,7 @@ async function validateVendorConsent(vendorId, siteListPath) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-      const result = await checkSiteForVendorConsent(page, site, vendorId);
+      const result = await checkSiteForVendor(page, site, vendorId);
       results.push(result);
     }
   } catch (error) {
@@ -61,7 +61,7 @@ async function validateVendorConsent(vendorId, siteListPath) {
  * @param {number} vendorId - TCF vendor ID to validate.
  * @returns {Promise<Object>} Validation result for the site.
  */
-async function checkSiteForVendorConsent(page, site, vendorId) {
+async function checkSiteForVendor(page, site, vendorId) {
   try {
     // Navigate to site with timeout for network stability
     await page.goto(site, { waitUntil: 'networkidle', timeout: 30000 });
@@ -83,7 +83,7 @@ async function checkSiteForVendorConsent(page, site, vendorId) {
     // TCF API is present, get CMP info and check for vendor consent
     const cmpInfo = await getCMPInfo(page);
     await clickConsentButton(page, cmpSelectors[cmpInfo.cmpId], 2000);
-    const consentCollected = await checkVendorConsent(page, vendorId);
+    const consentCollected = await checkVendor(page, vendorId);
 
     return {
       site,
@@ -144,30 +144,26 @@ async function getCMPInfo(page) {
 }
 
 /**
- * Checks if consent has been collected for specific TCF vendor.
+ * Checks if vendor ID is present in the TCF vendor consents object.
  * Assumes TCF API is present (checked by hasTCFAPI).
  * @param {Page} page - Playwright page instance.
  * @param {number} vendorId - TCF vendor ID.
  * @returns {Promise<boolean>} True if consent collected for vendor.
  */
-async function checkVendorConsent(page, vendorId) {
-  try {
-    const tcfData = await page.evaluate(() => {
-      return new Promise((resolve) => {
-        window.__tcfapi('getTCData', 2, (tcData, success) => {
-          resolve(success ? tcData : null);
-        });
+async function checkVendor(page, vendorId) {
+  const tcfData = await page.waitForFunction(() => {
+    return new Promise((resolve) => {
+      window.__tcfapi('addEventListener', 2, (tcData, success) => {
+        if (success && tcData.eventStatus === 'useractioncomplete') resolve(tcData);
       });
     });
+  }, _, { timeout: 10000 });
 
-    if (tcfData && tcfData.vendor && tcfData.vendor.consents) {
-      return tcfData.vendor.consents[vendorId] === true;
-    }
-
-    return false;
-  } catch {
-    return false;
+  if (tcfData?.vendor?.consents) {
+    return vendorId in tcfData.vendor.consents;
   }
+
+  throw new Error('Failed to get vendor consents after consent button click');
 }
 
 /**
