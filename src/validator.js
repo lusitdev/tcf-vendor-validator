@@ -62,12 +62,14 @@ async function validateVendorConsent(vendorId, siteListPath) {
  * @returns {Promise<Object>} Validation result for the site.
  */
 async function checkSiteForVendor(page, site, vendorId) {
+  let cmpInfo = null;
+  let hasTCF;
   try {
     // Navigate to site with timeout for network stability
     await page.goto(site, { waitUntil: 'networkidle', timeout: 30000 });
 
     // First check if TCF API is implemented
-    const hasTCF = await hasTCFAPI(page);
+    hasTCF = await hasTCFAPI(page);
     if (!hasTCF) {
       return {
         site,
@@ -81,7 +83,7 @@ async function checkSiteForVendor(page, site, vendorId) {
     }
 
     // TCF API is present, get CMP info and check for vendor consent
-    const cmpInfo = await getCMPInfo(page);
+    cmpInfo = await getCMPInfo(page);
     await clickConsentButton(page, cmpSelectors[cmpInfo.cmpId], 2000);
     const consentCollected = await checkVendor(page, vendorId);
 
@@ -98,9 +100,9 @@ async function checkSiteForVendor(page, site, vendorId) {
     return {
       site,
       vendorId,
-      hasTCF: false,
-      cmpId: null,
-      consentCollected: false,
+      hasTCF: hasTCF,
+      cmpId: cmpInfo?.cmpId ?? null,
+      consentCollected: 'n/a',
       timestamp: new Date().toISOString(),
       error: error.message
     };
@@ -180,6 +182,7 @@ async function clickConsentButton(page, selectors, timeout = 5000) {
 
   for (const selector of selectorArray) {
     try {
+      console.log(`Trying to click consent button with selector: ${selector}`);
       const locator = page.locator(selector);
       await locator.click({ timeout: timeout });
       return; // Successfully clicked
