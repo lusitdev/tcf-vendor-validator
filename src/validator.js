@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const { parseSiteList } = require('./utils');
+const cmpSelectors = require('./cmpSelectors');
 
 /**
  * Initializes Playwright browser instance for CMP testing.
@@ -81,6 +82,7 @@ async function checkSiteForVendorConsent(page, site, vendorId) {
 
     // TCF API is present, get CMP info and check for vendor consent
     const cmpInfo = await getCMPInfo(page);
+    await clickConsentButton(page, cmpSelectors[cmpInfo.cmpId], 2000);
     const consentCollected = await checkVendorConsent(page, vendorId);
 
     return {
@@ -142,35 +144,6 @@ async function getCMPInfo(page) {
 }
 
 /**
- * Detects presence of Consent Management Platform on the page.
- * @param {Page} page - Playwright page instance.
- * @returns {Promise<boolean>} True if CMP detected.
- */
-async function detectCMP(page) {
-  // Placeholder: Check for common CMP indicators
-  // This should be expanded with actual CMP detection logic
-  try {
-    const cmpIndicators = [
-      'OneTrust',
-      'Cookiebot',
-      'Quantcast',
-      '__tcfapi',
-      'cmp'
-    ];
-
-    for (const indicator of cmpIndicators) {
-      const found = await page.locator(`text=${indicator}`).count() > 0 ||
-                   await page.locator(`[class*="${indicator.toLowerCase()}"]`).count() > 0;
-      if (found) return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Checks if consent has been collected for specific TCF vendor.
  * Assumes TCF API is present (checked by hasTCFAPI).
  * @param {Page} page - Playwright page instance.
@@ -197,7 +170,36 @@ async function checkVendorConsent(page, vendorId) {
   }
 }
 
+/**
+ * Finds and clicks a consent button using flexible selector matching.
+ * Handles both single selectors (string) and multiple selectors (array).
+ * @param {Page} page - Playwright page instance.
+ * @param {string|string[]} selectors - Single selector string or array of selector strings.
+ * @param {number} timeout - Timeout in milliseconds (default: 5000).
+ * @returns {Promise<void>} Resolves when button is successfully clicked.
+ * @throws {Error} If no selector matches any clickable element within timeout.
+ */
+async function clickConsentButton(page, selectors, timeout = 5000) {
+  const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+
+  for (const selector of selectorArray) {
+    try {
+      const locator = page.locator(selector);
+      await locator.click({ timeout: timeout });
+      return; // Successfully clicked
+    } catch (error) {
+      // Continue to next selector if this one fails
+      continue;
+    }
+  }
+
+  // If we get here, none of the selectors worked
+  const selectorString = Array.isArray(selectors) ? selectors.join(' | ') : selectors;
+  throw new Error(`No consent button found with selectors: ${selectorString}`);
+}
+
 module.exports = {
   initializePlaywright,
-  validateVendorConsent
+  validateVendorConsent,
+  clickConsentButton
 };
