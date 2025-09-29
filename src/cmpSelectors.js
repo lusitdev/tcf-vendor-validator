@@ -3,7 +3,7 @@
  */
 const cmpSelectors = {
   6: '.sp_choice_type_11',
-  7: ['#didomi-notice-agree-button', '#cpexSubs_consentButton'],
+  7: ['#didomi-notice-agree-button', '#cpexSubs_consentButton', '.btn-cons .contentwall_ok'],
   10: '.qc-cmp2-summary-buttons button[mode=primary]',
   28: '#onetrust-accept-btn-handler',
   31: '.cmptxt_btn_yes',
