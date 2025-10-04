@@ -64,10 +64,6 @@ async function checkSiteForVendor(page, site, vendorId) {
   let cmpInfo = null;
   let hasTCF;
   try {
-    /* // Navigate to site with timeout for network stability
-    // TODO: still sometimes exceeding timeout
-    await page.goto(site, { waitUntil: 'networkidle', timeout: 60000 }); */
-    // Navigate to site with faster, more reliable wait
     await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 60000 });
     
     // wait for TCF API or CMP elements to ensure readiness
@@ -89,13 +85,7 @@ async function checkSiteForVendor(page, site, vendorId) {
       };
     }
 
-    // Get CMP ID TODO: cleanup
-    cmpInfo = await getCMPInfo(page);
-    if (!cmpInfo || !cmpInfo.cmpId) {
-      throw new Error('TCF API present but failed to get CMP info');
-    }
-    const cmpId = Number(cmpInfo.cmpId);
-    console.log("cmpId: " + cmpId);
+    cmpId = await getCMPId(page);
     const vendorPresent = await process[cmpId].start(page, vendorId, page, vendorId, cmpId);
 
     return {
@@ -141,7 +131,7 @@ async function hasTCFAPI(page) {
  * @param {Page} page - Playwright page instance.
  * @returns {Promise<Object|null>} CMP information or null if not available.
  */
-async function getCMPInfo(page) {
+async function getCMPId(page) {
   try {
     const cmpInfo = await page.evaluate(() => {
       return new Promise((resolve) => {
@@ -150,9 +140,12 @@ async function getCMPInfo(page) {
         });
       });
     });
-    return cmpInfo;
-  } catch {
-    return null;
+    if (!cmpInfo?.cmpId) {
+      throw new Error('TCF API present, ping failed to get CMP info');
+    }
+    return Number(cmpInfo.cmpId);
+  } catch (err) {
+    throw new Error(`TCF API ping failed: ${err}`);
   }
 }
 
