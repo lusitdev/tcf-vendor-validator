@@ -32,7 +32,7 @@ function generateCSV(results) {
     result.vendorId,
     result.hasTCF,
     result.cmpId || '',
-    result.consentCollected,
+    result.vendorPresent,
     result.timestamp,
     result.error || ''
   ]);

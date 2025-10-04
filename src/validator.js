@@ -1,7 +1,6 @@
 const { chromium } = require('playwright');
 const { parseSiteList } = require('./utils');
-const cmpSelectors = require('./cmpSelectors');
-
+const { processCmpId: process } = require('./cmpStrategies');
 /**
  * Initializes Playwright browser instance for CMP testing.
  * Uses headless Chromium with sandbox disabled for server environments.
@@ -9,7 +8,7 @@ const cmpSelectors = require('./cmpSelectors');
  */
 async function initializePlaywright() {
   const browser = await chromium.launch({
-    headless: false,
+    headless: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -76,7 +75,7 @@ async function checkSiteForVendor(page, site, vendorId) {
       return typeof window.__tcfapi === 'function';
     }, { timeout: 10000 });
 
-    // First check if TCF API is implemented
+    // Check if TCF API is present
     hasTCF = await hasTCFAPI(page);
     if (!hasTCF) {
       return {
@@ -84,26 +83,27 @@ async function checkSiteForVendor(page, site, vendorId) {
         vendorId,
         hasTCF: false,
         cmpId: null,
-        consentCollected: false,
+        vendorPresent: false,
         timestamp: new Date().toISOString(),
         error: null
       };
     }
 
-    // TCF API is present, get CMP info and check for vendor consent
+    // Get CMP ID TODO: cleanup
     cmpInfo = await getCMPInfo(page);
     if (!cmpInfo || !cmpInfo.cmpId) {
       throw new Error('TCF API present but failed to get CMP info');
     }
-    await clickConsentButton(page, cmpInfo.cmpId, cmpSelectors[cmpInfo.cmpId], 2000);
-    const consentCollected = await checkVendor(page, vendorId);
+    const cmpId = Number(cmpInfo.cmpId);
+    console.log("cmpId: " + cmpId);
+    const vendorPresent = await process[cmpId].start(page, vendorId, page, vendorId, cmpId);
 
     return {
       site,
       vendorId,
       hasTCF: true,
-      cmpId: cmpInfo ? cmpInfo.cmpId : null,
-      consentCollected,
+      cmpId,
+      vendorPresent,
       timestamp: new Date().toISOString(),
       error: null
     };
@@ -113,7 +113,7 @@ async function checkSiteForVendor(page, site, vendorId) {
       vendorId,
       hasTCF: hasTCF,
       cmpId: cmpInfo?.cmpId ?? null,
-      consentCollected: 'n/a',
+      vendorPresent: 'n/a',
       timestamp: new Date().toISOString(),
       error: error.message
     };
@@ -156,92 +156,7 @@ async function getCMPInfo(page) {
   }
 }
 
-/**
- * Checks if vendor ID is present in the TCF vendor consents object.
- * Assumes TCF API is present (checked by hasTCFAPI).
- * @param {Page} page - Playwright page instance.
- * @param {number} vendorId - TCF vendor ID.
- * @returns {Promise<boolean>} True if consent collected for vendor.
- */
-async function checkVendor(page, vendorId) {
-  // tmp hack
-  await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
-  /* await page.waitForFunction(() => {
-      return typeof window.__tcfapi === 'function';
-    }, { timeout: 10000 }); */
-
-  const tcfDataHandle = await page.waitForFunction(() => {
-    return new Promise((resolve) => {
-      window.__tcfapi('addEventListener', 2, (tcData, success) => {
-        if (success && tcData.eventStatus === 'useractioncomplete') resolve(tcData);
-      });
-    });
-  }, { timeout: 10000 });
-
-  const tcfData = await tcfDataHandle.jsonValue(); // Extract the actual object from JSHandle
-  console.log(tcfData);
-
-  if (tcfData?.vendor?.consents) {
-    return vendorId in tcfData.vendor.consents;
-  }
-
-  throw new Error('Failed to get vendor consents after consent button click');
-}
-
-/**
- * Finds and clicks a consent button using flexible selector matching.
- * Handles both single selectors (string) and multiple selectors (array).
- * @param {Page} page - Playwright page instance.
- * @param {string|string[]} selectors - Single selector string or array of selector strings.
- * @param {number} timeout - Timeout in milliseconds (default: 5000).
- * @returns {Promise<void>} Resolves when button is successfully clicked.
- * @throws {Error} If no selector matches any clickable element within timeout.
- */
-async function clickConsentButton(page, cmpId, selectors, timeout = 5000) {
-  const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
-  // tmp hack
-  if (cmpId === 7) {
-    const cmpPrompt = page.locator('a.cookie-info');
-    await cmpPrompt.waitFor({ state: 'visible' , timeout: 30000 });
-    await cmpPrompt.click({ timeout: timeout });
-
-        await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
-
-    // Wait for Didomi to be available with logging for debugging
-    await page.waitForFunction(() => {
-      console.log('Checking Didomi:', typeof window.Didomi, window.Didomi ? 'object present' : 'undefined');
-      return typeof window.Didomi !== 'undefined';
-    }, { timeout: 30000 }); // Increased timeout for slower loads
-
-    await page.evaluate(() => {
-      window.Didomi.setUserAgreeToAll();
-    });
-    return;
-    //Didomi.getRequiredVendorIds
-  }
-
-  for (const selector of selectorArray) {
-    try {
-      const locator = page.locator(selector);
-      await locator.waitFor({ state: 'visible' , timeout: 30000 });
-      console.log(`Found: ${selector}`);
-      await locator.click({ timeout: timeout });
-      console.log(`Clicked button: ${selector}`);
-      return; // clicked
-    } catch (error) {
-      // Continue to next selector if this one fails
-      continue;
-    }
-  }
-
-  // None of the selectors worked
-  console.error('Selectors failed!');
-  const selectorString = Array.isArray(selectors) ? selectors.join(' | ') : selectors;
-  throw new Error(`No consent button found with selectors: ${selectorString}`);
-}
-
 module.exports = {
   initializePlaywright,
-  validateVendorConsent,
-  clickConsentButton
+  validateVendorConsent
 };
