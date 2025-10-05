@@ -63,7 +63,6 @@ async function checkByTCFAPI(page, vendorId) {
   }, { timeout: 10000 });
 
   const tcfData = await tcfDataHandle.jsonValue(); // Extract the actual object from JSHandle
-  console.log(tcfData);
 
   if (tcfData?.vendor?.consents) {
     return String(vendorId in tcfData.vendor.consents);

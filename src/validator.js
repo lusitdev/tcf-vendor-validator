@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 const { parseSiteList } = require('./utils');
-const { processCmpId: process } = require('./cmpStrategies');
+const { processCMPId: process } = require('./cmpStrategies');
 /**
  * Initializes Playwright browser instance for CMP testing.
  * Uses headless Chromium with sandbox disabled for server environments.
@@ -85,8 +85,8 @@ async function checkSiteForVendor(page, site, vendorId) {
       };
     }
 
-    cmpId = await getCMPId(page);
-    const vendorPresent = await process[cmpId].start(page, vendorId, page, vendorId, cmpId);
+    cmpId = await getCMPId(page); // TODO: ensure recording cmpId when error occurres after this point
+    const vendorPresent = await process[cmpId].start(page, vendorId, cmpId);
 
     return {
       site,
@@ -117,10 +117,11 @@ async function checkSiteForVendor(page, site, vendorId) {
  */
 async function hasTCFAPI(page) {
   try {
-    const hasAPI = await page.evaluate(() => {
+    const hasAPIHandle = await page.waitForFunction(() => {
       return typeof window.__tcfapi === 'function';
     });
-    return hasAPI;
+    const hasAPI = await hasAPIHandle.jsonValue();
+    return Boolean(hasAPI);
   } catch {
     return false;
   }
@@ -132,21 +133,42 @@ async function hasTCFAPI(page) {
  * @returns {Promise<Object|null>} CMP information or null if not available.
  */
 async function getCMPId(page) {
-  try {
-    const cmpInfo = await page.evaluate(() => {
-      return new Promise((resolve) => {
-        window.__tcfapi('ping', 2, (pingReturn, success) => {
-          resolve(success ? pingReturn : null);
+  const tryPingOnFrame = async (frame) => {
+    try {
+      return await frame.evaluate(() => {
+        return new Promise((resolve) => {
+          try {
+            if (typeof window.__tcfapi !== 'function') return resolve(null);
+            window.__tcfapi('ping', 2, (pingReturn, success) => {
+              resolve(success ? pingReturn : null);
+            });
+          } catch (e) {
+            resolve(null);
+          }
         });
       });
-    });
-    if (!cmpInfo?.cmpId) {
-      throw new Error('TCF API present, ping failed to get CMP info');
+    } catch {
+      return null;
     }
-    return Number(cmpInfo.cmpId);
-  } catch (err) {
-    throw new Error(`TCF API ping failed: ${err}`);
+  };
+
+  const overallTimeout = 60000; // ms
+  const pollInterval = 500; // ms
+  const start = Date.now();
+
+  while (Date.now() - start < overallTimeout) {
+    // try all frames (main + iframes)
+    const frames = page.frames();
+    for (const f of frames) {
+      const info = await tryPingOnFrame(f);
+      if (info && info.cmpId) {
+        return Number(info.cmpId);
+      }
+    }
+    await new Promise((r) => setTimeout(r, pollInterval));
   }
+
+  throw new Error('TCF API ping failed: no response from any frame within timeout');
 }
 
 module.exports = {
