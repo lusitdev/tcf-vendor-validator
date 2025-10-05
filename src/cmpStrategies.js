@@ -1,5 +1,5 @@
 const processCMPId = [];
-processCMPId[6] = { start: clickThenTCF, selector: '.sp_choice_type_11' };
+processCMPId[6] = { start: iframeClickThenTCF, selector: '.sp_choice_type_11' };
 processCMPId[7] = { start: checkByDidomiAPI };
 processCMPId[10] = { start: clickThenTCF, selector: '.qc-cmp2-summary-buttons button[mode=primary]'};
 processCMPId[28] = { start: clickThenTCF, selector: '#onetrust-accept-btn-handler' };
@@ -12,6 +12,11 @@ processCMPId[401] = { start: clickThenTCF, selector: '.cky-notice-btn-wrapper .c
 
 async function clickThenTCF(page, vendorId, cmpId) {
   await clickConsentButton(page, processCMPId[cmpId].selector, 60000);
+  return checkByTCFAPI(page, vendorId);
+};
+
+async function iframeClickThenTCF(page, vendorId, cmpId) {
+  await clickConsentButtonIframe(page, processCMPId[cmpId].selector, 60000);
   return checkByTCFAPI(page, vendorId);
 };
 
@@ -38,6 +43,56 @@ const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
       // Continue to next selector if this one fails
       continue;
     }
+  }
+
+  const selectorsString = Array.isArray(selectors) ? selectors.join(' | ') : selectors;
+  throw new Error(`No consent button found with selectors: ${selectorsString}`);
+}
+
+/**
+ * Finds and clicks a consent button. Searches main frame first then all iframes.
+ * Handles both single selector (string) and multiple selectors (array).
+ * @param {Page} page - Playwright page instance.
+ * @param {string|array} selectors - Selector or array of selectors.
+ * @param {number} timeout - Timeout in milliseconds (default: 5000).
+ */
+async function clickConsentButtonIframe(page, selectors, timeout = 5000) {
+  const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+  const start = Date.now();
+  const end = start + timeout;
+  const pollInterval = 200;
+
+  // Try main frame quickly for each selector
+  for (const selector of selectorArray) {
+    try {
+      const locator = page.locator(selector);
+      await locator.waitFor({ state: 'visible', timeout: Math.min(1000, timeout) });
+      await locator.click({ timeout: Math.min(1000, timeout) });
+      return;
+    } catch (e) {
+      // continue to next selector
+    }
+  }
+
+  // Poll frames until timeout
+  while (Date.now() < end) {
+    const frames = page.frames();
+    for (const f of frames) {
+      for (const selector of selectorArray) {
+        try {
+          // Use frame.locator (works with Playwright) and attempt to click if visible
+          const locator = f.locator(selector);
+          // short wait to check visibility
+          await locator.waitFor({ state: 'visible', timeout: 500 }).catch(() => null);
+          // try click (may fail if not actually visible/clickable)
+          await locator.click({ timeout: 1000 }).then(() => { throw 'clicked'; }).catch(() => { /* no-op */ });
+        } catch (marker) {
+          if (marker === 'clicked') return;
+          // otherwise fallthrough to next selector/frame
+        }
+      }
+    }
+    await new Promise((r) => setTimeout(r, pollInterval));
   }
 
   const selectorsString = Array.isArray(selectors) ? selectors.join(' | ') : selectors;

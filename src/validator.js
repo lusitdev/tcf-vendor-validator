@@ -64,7 +64,7 @@ async function checkSiteForVendor(page, site, vendorId) {
   let cmpInfo = null;
   let hasTCF;
   try {
-    await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
     
     // wait for TCF API or CMP elements to ensure readiness
     await page.waitForFunction(() => {
@@ -155,7 +155,7 @@ async function getCMPId(page) {
   const overallTimeout = 60000; // ms
   const pollInterval = 500; // ms
   const start = Date.now();
-
+  // TODO: needs rework, iframes proly not needed, retries are needed
   while (Date.now() - start < overallTimeout) {
     // try all frames (main + iframes)
     const frames = page.frames();
