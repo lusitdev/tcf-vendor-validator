@@ -56,7 +56,7 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
 }
 
 /**
- * Checks a single website for TCF vendor consent collection by CMP.
+ * Checks a single website whether CMP is configured for consent collection for vendor ID.
  * @param {Page} page - Playwright page instance.
  * @param {string} site - Website URL to check.
  * @param {number} vendorId - TCF vendor ID to validate.
@@ -73,6 +73,7 @@ async function checkSiteForVendor(page, site, vendorId) {
       return typeof window.__tcfapi === 'function';
     }, { timeout: 10000 });
 
+    // TODO: ensure recording cmpId when error occurres after this point
     // Check if TCF API is present
     hasTCF = await hasTCFAPI(page);
     if (!hasTCF) {
@@ -87,7 +88,8 @@ async function checkSiteForVendor(page, site, vendorId) {
       };
     }
 
-    cmpId = await getCMPId(page); // TODO: ensure recording cmpId when error occurres after this point
+    cmpId = await getCMPId(page);
+
     const vendorPresent = await processCMPId[cmpId].start(page, vendorId, cmpId);
 
     return {
@@ -113,7 +115,7 @@ async function checkSiteForVendor(page, site, vendorId) {
 }
 
 /**
- * Checks if the TCF API (__tcfapi) is present on the page.
+ * Checks if the TCF API is present on the page.
  * @param {Page} page - Playwright page instance.
  * @returns {Promise<boolean>} True if TCF API is detected.
  */
@@ -130,40 +132,36 @@ async function hasTCFAPI(page) {
 }
 
 /**
- * Gets CMP information using TCF API ping command.
  * @param {Page} page - Playwright page instance.
- * @returns {Promise<Object|null>} CMP information or null if not available.
+ * @returns {Promise<number>} CMP ID.
  */
 async function getCMPId(page) {
-  const tryPing = async () => {
-    try {
-      return await page.waitForFunction(() => {
-        return new Promise((res) => {
-          window.__tcfapi('ping', 2, (pingReturn, success) => {
-            return res(success ? pingReturn : null);
-          });
-        });
+  const tcfPing = async page => {
+    const cmpData = await page.evaluate(() => {
+      return new Promise((res) => {
+        window.__tcfapi('ping', 2, pingData => res(pingData));
       });
-    } catch (e) {
-      return null;
-    }
+    });
+
+    return (cmpData?.cmpId) ? Number(cmpData.cmpId) : null;
   };
 
-  const overallTimeout = 60000; // ms
-  const pollInterval = 500; // ms
-  const start = Date.now();
-  // TODO: needs rework, iframes proly not needed, retries are needed
-  while (Date.now() - start < overallTimeout) {
-    // try all frames (main + iframes)
-    const infoHandle = await tryPing();
-    const info = await infoHandle.jsonValue();
-      if (info?.cmpId) {
-        return Number(info.cmpId);
-      }
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
+  try {
+    const start = Date.now();
+    const timeout = 90000;
+    const pingPace = 1000;
 
-  throw new Error('TCF API ping failed: no response within timeout');
+    while (Date.now() < start + timeout) {
+      const cmpId = await tcfPing(page);
+      if (cmpId) return cmpId;
+      await new Promise(r => setTimeout(r, pingPace));
+    }
+
+    throw new Error('Timeout');
+  } catch (e) {
+    console.error('Error in getCMPId:', e);
+    throw new Error(`TCF API ping failed: ${e.message}`);
+  }
 }
 
 module.exports = {
