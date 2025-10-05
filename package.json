@@ -4,10 +4,10 @@
   "description": "Utility script that verifies whether consent for specified TCF vendor is being collected by CMP across a list of websites.",
   "main": "./run.js",
   "bin": {
-    "tcf-vendor-validator": "./run.js"
+    "tcfvv": "./run.js"
   },
   "scripts": {
-    "start": "node ./run.js",
+    "validate": "node run.js",
     "test": "jest ./tests/*.js"
   },
   "keywords": [

@@ -1,24 +1,26 @@
 const { chromium } = require('playwright');
 const { parseSiteList } = require('./utils');
-const { processCMPId: process } = require('./cmpStrategies');
+const { processCMPId } = require('./cmpStrategies');
+
 /**
  * Initializes Playwright browser instance for CMP testing.
  * Uses headless Chromium with sandbox disabled for server environments.
  * @returns {Promise<Browser>} Playwright browser instance.
  */
-async function initializePlaywright() {
+async function initializePlaywright(options = {}) {
+  // Default to headless, can be overridden
+  const headless = options.headless !== false;
+  
   const browser = await chromium.launch({
-    headless: false,
+    headless,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu'
+      '--disable-blink-features=AutomationControlled',
+      '--disable-dev-shm-usage'
     ]
   });
+  
   return browser;
 }
 
@@ -29,8 +31,8 @@ async function initializePlaywright() {
  * @param {string} siteListPath - Path to the sitelist file containing target websites.
  * @returns {Promise<Object[]>} Array of validation results for each site.
  */
-async function validateVendorConsent(vendorId, siteListPath) {
-  const browser = await initializePlaywright();
+async function validateVendorConsent(vendorId, siteListPath, options = {}) {
+  const browser = await initializePlaywright(options);
   const context = await browser.newContext();
   const page = await context.newPage();
 
@@ -86,7 +88,7 @@ async function checkSiteForVendor(page, site, vendorId) {
     }
 
     cmpId = await getCMPId(page); // TODO: ensure recording cmpId when error occurres after this point
-    const vendorPresent = await process[cmpId].start(page, vendorId, cmpId);
+    const vendorPresent = await processCMPId[cmpId].start(page, vendorId, cmpId);
 
     return {
       site,

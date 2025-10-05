@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
@@ -8,10 +9,33 @@ const { validateVendorConsent } = require('./src/validator');
 const configPath = path.join(__dirname, 'config.yml');
 const defaultConfig = yaml.load(fs.readFileSync(configPath, 'utf8'));
 
-// Parse command line arguments
-const vendorIdArg = process.argv[2];
+// arg parser: flags (--headfull, --siteList=path) and positional vendorId/siteList
+const rawArgs = process.argv.slice(2);
+let headfull = false;
+let vendorIdArg = null;
+let siteListArg = null;
+
+for (const a of rawArgs) {
+  if (a === '--headfull' || a === '--headfull=true') {
+    headfull = true;
+    continue;
+  }
+  if (a.startsWith('--siteList=')) {
+    siteListArg = a.split('=')[1];
+    continue;
+  }
+  // numeric positional -> vendorId
+  if (!vendorIdArg && !Number.isNaN(Number(a))) {
+    vendorIdArg = a;
+    continue;
+  }
+  // otherwise treat as siteList path if not set
+  if (!siteListArg) siteListArg = a;
+}
+
+const headless = !headfull;
 const vendorId = vendorIdArg ? parseInt(vendorIdArg, 10) : defaultConfig.vendorId;
-const siteListPath = process.argv[3] || path.join(__dirname, 'sitelists', defaultConfig.siteList);
+const siteListPath = siteListArg || path.join(__dirname, 'sitelists', defaultConfig.siteList);
 
 // Validate inputs
 if (isNaN(vendorId) || vendorId <= 0) {
@@ -28,9 +52,11 @@ if (!fs.existsSync(siteListPath)) {
 async function main() {
   console.log(`Starting TCF vendor consent validation for Vendor ID: ${vendorId}`);
   console.log(`Using site list: ${siteListPath}`);
+  console.log(`Browser mode: ${headless ? 'headless' : 'headfull'}`);
 
   try {
-    const results = await validateVendorConsent(vendorId, siteListPath);
+    // pass headless option into validator
+    const results = await validateVendorConsent(vendorId, siteListPath, { headless });
 
     // Save results to CSV in results/ directory
     const csvContent = generateCSV(results);
