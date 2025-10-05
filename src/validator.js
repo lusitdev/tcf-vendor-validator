@@ -8,7 +8,7 @@ const { processCMPId: process } = require('./cmpStrategies');
  */
 async function initializePlaywright() {
   const browser = await chromium.launch({
-    headless: true,
+    headless: false,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -133,21 +133,16 @@ async function hasTCFAPI(page) {
  * @returns {Promise<Object|null>} CMP information or null if not available.
  */
 async function getCMPId(page) {
-  const tryPingOnFrame = async (frame) => {
+  const tryPing = async () => {
     try {
-      return await frame.evaluate(() => {
-        return new Promise((resolve) => {
-          try {
-            if (typeof window.__tcfapi !== 'function') return resolve(null);
-            window.__tcfapi('ping', 2, (pingReturn, success) => {
-              resolve(success ? pingReturn : null);
-            });
-          } catch (e) {
-            resolve(null);
-          }
+      return await page.waitForFunction(() => {
+        return new Promise((res) => {
+          window.__tcfapi('ping', 2, (pingReturn, success) => {
+            return res(success ? pingReturn : null);
+          });
         });
       });
-    } catch {
+    } catch (e) {
       return null;
     }
   };
@@ -158,17 +153,15 @@ async function getCMPId(page) {
   // TODO: needs rework, iframes proly not needed, retries are needed
   while (Date.now() - start < overallTimeout) {
     // try all frames (main + iframes)
-    const frames = page.frames();
-    for (const f of frames) {
-      const info = await tryPingOnFrame(f);
-      if (info && info.cmpId) {
+    const infoHandle = await tryPing();
+    const info = await infoHandle.jsonValue();
+      if (info?.cmpId) {
         return Number(info.cmpId);
       }
-    }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
 
-  throw new Error('TCF API ping failed: no response from any frame within timeout');
+  throw new Error('TCF API ping failed: no response within timeout');
 }
 
 module.exports = {
