@@ -8,7 +8,7 @@ const { processCMPId } = require('./cmpStrategies');
  * @returns {Promise<Browser>} Playwright browser instance.
  */
 async function initializePlaywright(options = {}) {
-  // Default to headless, can be overridden
+  // Default to headless
   const headless = options.headless !== false;
   
   const browser = await chromium.launch({
@@ -25,8 +25,6 @@ async function initializePlaywright(options = {}) {
 }
 
 /**
- * Validates TCF vendor consent collection across websites using CMP detection.
- * Implements the core utility functionality described in AGENTS.md.
  * @param {number} vendorId - The TCF vendor ID to check for consent.
  * @param {string} siteListPath - Path to the sitelist file containing target websites.
  * @returns {Promise<Object[]>} Array of validation results for each site.
@@ -56,7 +54,7 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
 }
 
 /**
- * Checks a single website whether CMP is configured for consent collection for vendor ID.
+ * Checks a website whether CMP is configured for consent collection for the vendor ID.
  * @param {Page} page - Playwright page instance.
  * @param {string} site - Website URL to check.
  * @param {number} vendorId - TCF vendor ID to validate.
@@ -138,8 +136,8 @@ async function hasTCFAPI(page) {
 async function getCMPId(page) {
   const tcfPing = async page => {
     const cmpData = await page.evaluate(() => {
-      return new Promise((res) => {
-        window.__tcfapi('ping', 2, pingData => res(pingData));
+      return new Promise(r => {
+        window.__tcfapi('ping', 2, r);
       });
     });
 
