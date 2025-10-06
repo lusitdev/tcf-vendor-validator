@@ -43,3 +43,7 @@ Results: `results/validation-<vendorId>-<timestamp>.csv`
 
 - Exit codes: 0 (success), non-zero (error).
 - Install globally: `npm link` (enables `tcfvv` command).
+
+## License
+
+MIT
