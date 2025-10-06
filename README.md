@@ -23,13 +23,13 @@ node run.js --headfull 30 sitelist.txt
 
 ### Arguments
 
-- `<vendorId>` (required) — TCF vendor ID (integer > 0). Falls back to `config.yml` if omitted.
-- `[siteListPath]` (optional) — Path to newline-separated site list. Defaults to `sitelists/<siteList>` from `config.yml`.
+- `<vendorId>` (required) - TCF vendor ID (integer > 0). Falls back to `config.yml` if omitted.
+- `[siteListPath]` (optional) - Path to newline-separated site list. Defaults to `sitelists/sitelist.txt` from `config.yml`.
 
 ### Flags
 
-- `--headfull` — Launch browser in visible mode (default: headless).
-- `--siteList=<path>` — Alternative syntax for site list path.
+- `--headfull` - Launch browser in visible mode (default: headless).
+- `--siteList=<path>` - Alternative syntax for site list path.
 
 ## Output
 
