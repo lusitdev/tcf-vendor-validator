@@ -12,7 +12,7 @@ class CMPService {
   
   strategies = {
     6: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
-    7: { custom: () => this.checkByDidomiAPI() },
+    7: { custom: 'checkByDidomiAPI' },
     10: { selector: '.qc-cmp2-summary-buttons button[mode=primary]' },
     28: { selector: '#onetrust-accept-btn-handler' },
     31: { selector: '.cmptxt_btn_yes' },
@@ -32,13 +32,12 @@ class CMPService {
       return this.checkByTCFAPI();
     }
 
-    return strategy.custom();
+    return this[strategy.custom]();
   }
 
   /**
    * Finds and clicks a consent button using flexible selector matching.
    * Handles both single selectors (string) and multiple selectors (array).
-   * @param {number} timeout - Timeout in milliseconds (default: 5000).
    * @returns {Promise<void>} Resolves when button is successfully clicked.
    * @throws {Error} If no selector matches any clickable element within timeout.
    */
@@ -66,8 +65,7 @@ class CMPService {
 
   /**
    * Checks if vendor ID is present in the TCF vendor consents object.
-   * Assumes TCF API is present (checked by hasTCFAPI).
-   * @returns {Promise<boolean>} True if consent collected for vendor.
+   * @returns {Promise<boolean>} True if consent status collected for the vendorId.
    */
   async checkByTCFAPI() {
     await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 });
@@ -79,8 +77,9 @@ class CMPService {
         });
       });
     }, { timeout: 10000 });
-
-    const tcfData = await tcfDataHandle.jsonValue(); // Extract the actual object from JSHandle
+    
+    // Extract the actual object from JSHandle
+    const tcfData = await tcfDataHandle.jsonValue(); 
 
     if (tcfData?.vendor?.consents) {
       return this.vendorId in tcfData.vendor.consents;
