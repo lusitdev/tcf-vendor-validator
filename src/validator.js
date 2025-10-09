@@ -88,7 +88,8 @@ async function checkSiteForVendor(page, site, vendorId) {
 
     cmpId = await getCMPId(page);
 
-    const vendorPresent = await CMPService.init(page, cmpId, vendorId).run();
+    let vendorPresent = await CMPService.init(page, cmpId, vendorId).run();
+    vendorPresent = String(vendorPresent);
 
     return {
       site,
