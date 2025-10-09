@@ -1,9 +1,10 @@
-const { clickConsentButton } = require('../src/cmpStrategies');
+const { CMPService } = require('../src/CMPService');
 const { initializePlaywright } = require('../src/validator');
 
 describe('clickConsentTcf', () => {
   let browser;
   let page;
+  let service;
 
   beforeAll(async () => {
     browser = await initializePlaywright();
@@ -16,6 +17,8 @@ describe('clickConsentTcf', () => {
   beforeEach(async () => {
     const context = await browser.newContext();
     page = await context.newPage();
+    // create a CMPService instance (cmpId and vendorId are unused by clickConsentButton)
+    service = CMPService.init(page, 1, 999);
   });
 
   afterEach(async () => {
@@ -27,7 +30,7 @@ describe('clickConsentTcf', () => {
     await page.setContent('<button id="consent-btn" onclick="window.clicked=true">Accept</button>');
     await page.exposeFunction('setClicked', () => { clicked = true; });
 
-    await clickConsentButton(page, '#consent-btn');
+  await service.clickConsentButton('#consent-btn');
 
     // Verify the button was clicked
     const wasClicked = await page.evaluate(() => window.clicked);
@@ -38,8 +41,9 @@ describe('clickConsentTcf', () => {
     let clicked = false;
     await page.setContent('<button class="consent-btn" onclick="window.clicked=true">Accept</button>');
     await page.exposeFunction('setClicked', () => { clicked = true; });
+    service.defaultTimeout = 100;
 
-    await clickConsentButton(page, ['#nonexistent', '.consent-btn'], 100);
+  await service.clickConsentButton(['#nonexistent', '.consent-btn']);
 
     // Verify the button was clicked
     const wasClicked = await page.evaluate(() => window.clicked);
@@ -48,16 +52,18 @@ describe('clickConsentTcf', () => {
 
   it('should throw error when no selectors match', async () => {
     await page.setContent('<div>No buttons here</div>');
+    service.defaultTimeout = 100;
 
-    await expect(clickConsentButton(page, '#nonexistent', 100)).rejects.toThrow(
+    await expect(service.clickConsentButton('#nonexistent')).rejects.toThrow(
       'No consent button found with selectors: #nonexistent'
     );
   });
 
   it('should throw error when none of the array selectors match', async () => {
     await page.setContent('<div>No buttons here</div>');
+    service.defaultTimeout = 100;
 
-    await expect(clickConsentButton(page, ['#btn1', '#btn2'], 100)).rejects.toThrow(
+    await expect(service.clickConsentButton(['#btn1', '#btn2'])).rejects.toThrow(
       'No consent button found with selectors: #btn1 | #btn2'
     );
   });

@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 const { parseSiteList } = require('./utils');
-const { processCMPId } = require('./cmpStrategies');
+const { CMPService } = require('./CMPService');
 
 /**
  * Initializes Playwright browser instance for CMP testing.
@@ -88,7 +88,8 @@ async function checkSiteForVendor(page, site, vendorId) {
 
     cmpId = await getCMPId(page);
 
-    const vendorPresent = await processCMPId[cmpId].start(page, vendorId, cmpId);
+    let vendorPresent = await CMPService.init(page, cmpId, vendorId).run();
+    vendorPresent = String(vendorPresent);
 
     return {
       site,
