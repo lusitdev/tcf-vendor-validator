@@ -24,5 +24,5 @@ Utility script that verifies whether consent for specified TCF vendor is being c
 
 - Adhere to KISS principle when possible.
 - Use strategy pattern rather than long chain of if-else or switch statements.
-- Code should be largely self-documenting; add comments only when necessary for understanding hard to decipher code.
+- Code should be largely self-documenting; add comments only to non-obvious logic.
 - Use descriptive variable names only when meaningful. Short-lived local variables with obvious meaning should use single letter names when appropriate or abbreviations.
