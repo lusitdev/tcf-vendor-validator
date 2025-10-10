@@ -72,6 +72,9 @@ class VendorPresent {
    */
   static async check(context, site, vendorId) {
     const result = new VendorPresent(site, vendorId);
+    // Cookies cleaning can be removed (or not) after implementing domain deduplication 
+    const cookies = await context.cookies();
+    if (cookies.length) await context.clearCookies();
     const page = await context.newPage();
 
     try {
