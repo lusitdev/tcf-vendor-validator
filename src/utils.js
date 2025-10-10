@@ -30,14 +30,14 @@ function generateCSV(results) {
   const rows = results.map(result => [
     result.site,
     result.vendorId,
-    String(result.hasTCF || ''),
-    result.cmpId || '',
-    String(result.vendorPresent || ''),
-    result.timestamp || '',
-    result.error || ''
+    String(result.hasTCF || 'N/A'),
+    result.cmpId || 'N/A',
+    String(result.vendorPresent || 'N/A'),
+    result.timestamp || 'N/A',
+    String(result.error || 'N/A')
   ]);
 
-  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(';')).join('\n');
 }
 
 module.exports = { 
