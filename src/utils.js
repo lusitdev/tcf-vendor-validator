@@ -30,10 +30,10 @@ function generateCSV(results) {
   const rows = results.map(result => [
     result.site,
     result.vendorId,
-    result.hasTCF,
+    String(result.hasTCF || ''),
     result.cmpId || '',
-    result.vendorPresent,
-    result.timestamp,
+    String(result.vendorPresent || ''),
+    result.timestamp || '',
     result.error || ''
   ]);
 

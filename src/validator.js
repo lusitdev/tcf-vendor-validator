@@ -40,7 +40,7 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-      const result = await checkSiteForVendor(context, site, vendorId);
+      const result = await VendorPresent.check(context, site, vendorId);
       results.push(result);
     }
   } catch (error) {
@@ -53,64 +53,48 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
   return results;
 }
 
-/**
- * Checks a website whether CMP is configured for consent collection for the vendor ID.
- * @param {Context} context - Playwright's browser context
- * @param {string} site - Website URL to check.
- * @param {number} vendorId - TCF vendor ID to validate.
- * @returns {Promise<Object>} Validation result for the site.
- */
-async function checkSiteForVendor(context, site, vendorId) {
-  const page = await context.newPage();
-  let cmpInfo = null;
-  let hasTCF;
-  try {
-    await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    
-    // wait for TCF API or CMP elements to ensure readiness
-    await page.waitForFunction(() => {
-      return typeof window.__tcfapi === 'function';
-    }, { timeout: 10000 });
+class VendorPresent {
+  constructor(site, vendorId) {
+    this.site = site;
+    this.vendorId = vendorId;
+    this.hasTCF = null;
+    this.cmpId = null;
+    this.vendorPresent = null;
+    this.timestamp = null;
+    this.error = null;
+  }
+  /**
+   * Checks a website whether CMP is configured for consent collection for the vendor ID.
+   * @param {Context} context - Playwright's browser context
+   * @param {string} site - Website URL to check.
+   * @param {number} vendorId - TCF vendor ID to validate.
+   * @returns {Promise<Object>} Validation result for the site.
+   */
+  static async check(context, site, vendorId) {
+    const result = new VendorPresent(site, vendorId);
+    const page = await context.newPage();
 
-    // TODO: ensure recording cmpId when error occurres after this point
-    // Check if TCF API is present
-    hasTCF = await hasTCFAPI(page);
-    if (!hasTCF) {
-      return {
-        site,
-        vendorId,
-        hasTCF: false,
-        cmpId: null,
-        vendorPresent: false,
-        timestamp: new Date().toISOString(),
-        error: null
-      };
+    try {
+      await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
+
+      // Check if TCF API is present
+      result.hasTCF = await hasTCFAPI(page);
+      if (!result.hasTCF) {
+        result.timestamp = new Date().toISOString();
+        return result;
+      }
+
+      result.cmpId = await getCMPId(page);
+      result.vendorPresent = await CMPService.init(page, result.cmpId, vendorId).run();
+      result.timestamp = new Date().toISOString();
+
+    } catch (error) {
+      result.timestamp = new Date().toISOString();
+      result.error = error.message;
+    } finally {
+      await page.close();
+      return result;
     }
-
-    cmpId = await getCMPId(page);
-
-    let vendorPresent = await CMPService.init(page, cmpId, vendorId).run();
-    vendorPresent = String(vendorPresent);
-
-    return {
-      site,
-      vendorId,
-      hasTCF: true,
-      cmpId,
-      vendorPresent,
-      timestamp: new Date().toISOString(),
-      error: null
-    };
-  } catch (error) {
-    return {
-      site,
-      vendorId,
-      hasTCF: hasTCF,
-      cmpId: cmpInfo?.cmpId ?? null,
-      vendorPresent: 'n/a',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    };
   }
 }
 
@@ -146,6 +130,7 @@ async function getCMPId(page) {
     return (cmpData?.cmpId) ? Number(cmpData.cmpId) : null;
   };
 
+  // Retries are necessary on some websites.
   try {
     const start = Date.now();
     const timeout = 90000;
