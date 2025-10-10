@@ -32,7 +32,6 @@ async function initializePlaywright(options = {}) {
 async function validateVendorConsent(vendorId, siteListPath, options = {}) {
   const browser = await initializePlaywright(options);
   const context = await browser.newContext();
-  const page = await context.newPage();
 
   const sites = parseSiteList(siteListPath);
   const results = [];
@@ -41,12 +40,13 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-      const result = await checkSiteForVendor(page, site, vendorId);
+      const result = await checkSiteForVendor(context, site, vendorId);
       results.push(result);
     }
   } catch (error) {
     console.error('Error during validation process:', error);
   } finally {
+    await context.close();
     await browser.close();
   }
 
@@ -55,12 +55,13 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
 
 /**
  * Checks a website whether CMP is configured for consent collection for the vendor ID.
- * @param {Page} page - Playwright page instance.
+ * @param {Context} context - Playwright's browser context
  * @param {string} site - Website URL to check.
  * @param {number} vendorId - TCF vendor ID to validate.
  * @returns {Promise<Object>} Validation result for the site.
  */
-async function checkSiteForVendor(page, site, vendorId) {
+async function checkSiteForVendor(context, site, vendorId) {
+  const page = await context.newPage();
   let cmpInfo = null;
   let hasTCF;
   try {
