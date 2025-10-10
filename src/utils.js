@@ -30,17 +30,29 @@ function generateCSV(results) {
   const rows = results.map(result => [
     result.site,
     result.vendorId,
-    result.hasTCF,
-    result.cmpId || '',
-    result.vendorPresent,
-    result.timestamp,
-    result.error || ''
+    String(result.hasTCF ?? 'N/A'),
+    result.cmpId || 'N/A',
+    String(result.vendorPresent ?? 'N/A'),
+    result.timestamp || 'N/A',
+    result.error ? cleanError(result.error) : 'N/A'
   ]);
 
-  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+  return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(';')).join('\n');
 }
+
+function cleanError(err) {
+  // Remove ANSI escape codes (like [2m, [22m)
+  // Remove other control characters (except newlines and tabs)
+  return String(err)
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
+    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/\r?\n/g, ' | ')
+    .replace(/"/g, '""');
+}
+
 
 module.exports = { 
   parseSiteList,
-  generateCSV
+  generateCSV,
+  cleanError
 };
