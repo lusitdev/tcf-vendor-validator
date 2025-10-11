@@ -5,7 +5,11 @@ class CMPService {
     this.vendorId = vendorId;
     this.defaultTimeout = 30000;
   }
-
+  /**
+   * @param {Page} page - Playwright page instance.
+   * @param {string} cmpId - CMP ID.
+   * @param {number} vendorId - Vendor ID.
+   */
   static init = (page, cmpId, vendorId) => {
     return new CMPService(page, cmpId, vendorId);
   }

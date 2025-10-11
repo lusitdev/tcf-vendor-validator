@@ -120,7 +120,7 @@ async function hasTCFAPI(page) {
 
 /**
  * @param {Page} page - Playwright page instance.
- * @returns {Promise<number>} CMP ID.
+ * @returns {Promise<string>} CMP ID.
  */
 async function getCMPId(page) {
   const tcfPing = async page => {
@@ -130,7 +130,7 @@ async function getCMPId(page) {
       });
     });
 
-    return (cmpData?.cmpId) ? Number(cmpData.cmpId) : null;
+    return (cmpData?.cmpId) ? cmpData.cmpId : null;
   };
 
   // Retries are necessary on some websites.
