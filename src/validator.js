@@ -82,20 +82,18 @@ class VendorPresent {
 
       // Check if TCF API is present
       result.hasTCF = await hasTCFAPI(page);
-      if (!result.hasTCF) {
-        result.timestamp = new Date().toISOString();
-        return result;
-      }
+      if (!result.hasTCF) return result;
 
       result.cmpId = await getCMPId(page);
-      result.vendorPresent = await CMPService.init(page, result.cmpId, vendorId).run();
-      result.timestamp = new Date().toISOString();
 
+      result.vendorPresent = await CMPService.init(page, result.cmpId, vendorId).run();
     } catch (error) {
-      result.timestamp = new Date().toISOString();
       result.error = error.message;
     } finally {
       await page.close();
+
+      result.timestamp = new Date().toISOString();
+      
       return result;
     }
   }
