@@ -105,10 +105,10 @@ class VendorPresent {
  */
 async function hasTCFAPI(page) {
   try {
-    const hasAPIHandle = await page.waitForFunction(() => {
+    const hasAPI = await page.waitForFunction(() => {
       return typeof window.__tcfapi === 'function';
     });
-    const hasAPI = await hasAPIHandle.jsonValue();
+
     return Boolean(hasAPI);
   } catch {
     return false;
