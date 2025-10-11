@@ -3,9 +3,9 @@ const { parseSiteList } = require('./utils');
 const { CMPService } = require('./CMPService');
 
 /**
- * Initializes Playwright browser instance for CMP testing.
  * Uses headless Chromium with sandbox disabled for server environments.
- * @returns {Promise<Browser>} Playwright browser instance.
+ * @param {Object} [options] - Options to configure browser launch.
+ * @returns {Promise<browser>} Playwright browser instance.
  */
 async function initializePlaywright(options = {}) {
   // Default to headless
@@ -64,7 +64,7 @@ class VendorPresent {
     this.error = null;
   }
   /**
-   * Checks a website whether CMP is configured for consent collection for the vendor ID.
+   * Checks a website whether CMP collects consent for the vendor ID.
    * @param {Context} context - Playwright's browser context
    * @param {string} site - Website URL to check.
    * @param {number} vendorId - TCF vendor ID to validate.
@@ -93,14 +93,13 @@ class VendorPresent {
       await page.close();
 
       result.timestamp = new Date().toISOString();
-      
+
       return result;
     }
   }
 }
 
 /**
- * Checks if the TCF API is present on the page.
  * @param {Page} page - Playwright page instance.
  * @returns {Promise<boolean>} True if TCF API is detected.
  */
