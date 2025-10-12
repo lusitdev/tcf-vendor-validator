@@ -29,7 +29,7 @@ async function initializePlaywright(options = {}) {
  * @param {string} siteListPath - Path to the sitelist file containing target websites.
  * @returns {Promise<Object[]>} Array of validation results for each site.
  */
-async function validateVendorConsent(vendorId, siteListPath, options = {}) {
+async function validateSitesForVendor(vendorId, siteListPath, options = {}) {
   const browser = await initializePlaywright(options);
   const context = await browser.newContext();
 
@@ -40,7 +40,9 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-  const result = await VendorPresent.check(context, site, vendorId, { hasTCFAPI, getCMPId });
+      const result = await VendorPresent
+        .check(context, site, vendorId, { hasTCFAPI, getCMPId });
+        
       results.push(result);
     }
   } catch (error) {
@@ -90,7 +92,9 @@ class VendorPresent {
       result.hasTCF = await hasTCFAPI(page);
       result.cmpId = await getCMPId(page);
 
-      result.vendorIsPresent = await CMPService.init(page, result.cmpId, vendorId).run();
+      result.vendorIsPresent = await CMPService
+        .init(page, result.cmpId, vendorId)
+        .executeStrategy();
     } catch (e) {
       result.error = e.message;
     } finally {
@@ -153,6 +157,6 @@ async function getCMPId(page) {
 
 module.exports = {
   initializePlaywright,
-  validateVendorConsent,
+  validateSitesForVendor,
   VendorPresent
 };

@@ -72,7 +72,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
     const mockHas = jest.fn().mockResolvedValue(true);
     const mockGet = jest.fn().mockResolvedValue(testCmpId);
 
-    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => { throw new Error(`CMP ID ${testCmpId} not yet added`); } }));
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => { throw new Error(`CMP ID ${testCmpId} not yet added`); } }));
 
     const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
@@ -91,7 +91,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
     const mockHas = jest.fn().mockResolvedValue(true);
     const mockGet = jest.fn().mockResolvedValue(testCmpId);
 
-    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => true }));
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => true }));
 
     const result = await VendorPresent.check(fakeContext, site, 755, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
@@ -110,7 +110,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
     const mockHas = jest.fn().mockResolvedValue(true);
     const mockGet = jest.fn().mockResolvedValue(testCmpId);
 
-    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => false }));
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => false }));
 
     const result = await VendorPresent.check(fakeContext, site, 999, { hasTCFAPI: mockHas, getCMPId: mockGet });
 

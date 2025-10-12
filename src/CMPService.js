@@ -26,7 +26,7 @@ class CMPService {
     401: { selector: '.cky-notice-btn-wrapper .cky-btn-accept' }
   }
 
-  async run() {
+  async executeStrategy() {
     const strategy = this.strategies[this.cmpId];
     if (!strategy) throw new Error(`CMP ID ${this.cmpId} not yet added`);
 

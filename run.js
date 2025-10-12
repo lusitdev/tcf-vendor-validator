@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const { generateCSV } = require('./src/utils');
-const { validateVendorConsent } = require('./src/validator');
+const { validateSitesForVendor } = require('./src/validator');
 
 // Load default configuration
 const configPath = path.join(__dirname, 'config.yml');
@@ -56,7 +56,7 @@ async function main() {
 
   try {
     // pass headless option into validator
-    const results = await validateVendorConsent(vendorId, siteListPath, { headless });
+    const results = await validateSitesForVendor(vendorId, siteListPath, { headless });
 
     // Save results to CSV in results/ directory
     const csvContent = generateCSV(results);
