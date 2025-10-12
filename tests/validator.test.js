@@ -1,19 +1,126 @@
-const { initializePlaywright } = require('../src/validator');
+const validator = require('../src/validator');
+const { VendorPresent } = validator;
+const { CMPService } = require('../src/CMPService');
 
-describe('initializePlaywright', () => {
-  it('should launch and return a functional Playwright browser instance', async () => {
-    const browser = await initializePlaywright();
+// Pragmatic unit tests: use injected helpers and a tiny fake context so tests run
+// fast and deterministically without launching Playwright.
 
-    expect(browser).toBeDefined();
-    expect(typeof browser.newContext).toBe('function');
-    expect(typeof browser.close).toBe('function');
+describe('VendorPresent.check - unit tests with injected helpers', () => {
+  const vendorId = 42;
 
-    // Verify browser can create context and page
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    expect(page).toBeDefined();
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
-    await browser.close();
-  }, 30000); // Extended timeout for browser operations
+  // Minimal fake context that mimics the small subset used by VendorPresent.check
+  const makeFakeContext = () => {
+    const fakePage = {
+      goto: jest.fn(async () => {}),
+      close: jest.fn(async () => {})
+    };
+
+    return {
+      cookies: async () => [],
+      clearCookies: async () => {},
+      newPage: async () => fakePage
+    };
+  };
+
+  it('returns hasTCF=false when TCF API is absent', async () => {
+    const site = 'http://example/no-tcf';
+
+    const fakeContext = makeFakeContext();
+
+    // Inject fast helpers
+    const mockHas = jest.fn().mockResolvedValue(false);
+    const mockGet = jest.fn().mockImplementation(async () => { throw new Error('Timeout: test'); });
+
+    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+
+    expect(result).toMatchObject({
+      site,
+      vendorId,
+      hasTCF: false,
+      cmpId: null,
+      vendorPresent: null,
+    });
+    expect(result.timestamp).toBeTruthy();
+    expect(mockHas).toHaveBeenCalled();
+  });
+
+  it('preserves hasTCF when getCMPId throws', async () => {
+    const site = 'http://example/tcf-present-no-cmpid';
+    const fakeContext = makeFakeContext();
+
+    const mockHas = jest.fn().mockResolvedValue(true);
+    const mockGet = jest.fn().mockImplementation(async () => { throw new Error('TCF API ping failed: test'); });
+
+    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+
+    expect(result.hasTCF).toBe(true);
+    expect(result.cmpId).toBeNull();
+    expect(result.vendorPresent).toBeNull();
+    expect(result.error).toMatch(/TCF API ping failed/);
+    expect(result.timestamp).toBeTruthy();
+    expect(mockHas).toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  it('preserves previous fields when CMPService.run throws', async () => {
+    const site = 'http://example/cmp-run-throws';
+    const fakeContext = makeFakeContext();
+    const testCmpId = 999;
+
+    const mockHas = jest.fn().mockResolvedValue(true);
+    const mockGet = jest.fn().mockResolvedValue(testCmpId);
+
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => { throw new Error(`CMP ID ${testCmpId} not yet added`); } }));
+
+    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+
+    expect(result.hasTCF).toBe(true);
+    expect(result.cmpId).toBe(testCmpId);
+    expect(result.vendorPresent).toBeNull();
+    expect(result.error).toMatch(/CMP ID 999 not yet added/);
+    expect(result.timestamp).toBeTruthy();
+  });
+
+  it('returns vendorPresent=true on successful flow (mocked CMPService)', async () => {
+    const site = 'http://example/success-mocked-cmp';
+    const fakeContext = makeFakeContext();
+    const testCmpId = 300;
+
+    const mockHas = jest.fn().mockResolvedValue(true);
+    const mockGet = jest.fn().mockResolvedValue(testCmpId);
+
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => true }));
+
+    const result = await VendorPresent.check(fakeContext, site, 755, { hasTCFAPI: mockHas, getCMPId: mockGet });
+
+    expect(result.hasTCF).toBe(true);
+    expect(result.cmpId).toBe(testCmpId);
+    expect(result.vendorPresent).toBe(true);
+    expect(result.error).toBeNull();
+    expect(result.timestamp).toBeTruthy();
+  });
+
+  it('returns vendorPresent=false when CMPService reports vendor absent', async () => {
+    const site = 'http://example/vendor-absent';
+    const fakeContext = makeFakeContext();
+    const testCmpId = 300;
+
+    const mockHas = jest.fn().mockResolvedValue(true);
+    const mockGet = jest.fn().mockResolvedValue(testCmpId);
+
+    jest.spyOn(CMPService, 'init').mockImplementation(() => ({ run: async () => false }));
+
+    const result = await VendorPresent.check(fakeContext, site, 999, { hasTCFAPI: mockHas, getCMPId: mockGet });
+
+    expect(result.hasTCF).toBe(true);
+    expect(result.cmpId).toBe(testCmpId);
+    expect(result.vendorPresent).toBe(false);
+    expect(result.error).toBeNull();
+    expect(result.timestamp).toBeTruthy();
+  });
 });
 

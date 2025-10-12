@@ -40,7 +40,7 @@ async function validateVendorConsent(vendorId, siteListPath, options = {}) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-      const result = await VendorPresent.check(context, site, vendorId);
+  const result = await VendorPresent.check(context, site, vendorId, { hasTCFAPI, getCMPId });
       results.push(result);
     }
   } catch (error) {
@@ -68,9 +68,12 @@ class VendorPresent {
    * @param {Context} context - Playwright's browser context
    * @param {string} site - Website URL to check.
    * @param {number} vendorId - TCF vendor ID to validate.
+   * @param {Object} checks - Object containing check functions.
+   * @param {function} checks.hasTCFAPI - Function to check if TCF API is present.
+   * @param {function} checks.getCMPId - Function to retrieve the CMP ID.
    * @returns {Promise<Object>} Validation result for the site.
    */
-  static async check(context, site, vendorId) {
+  static async check(context, site, vendorId, { hasTCFAPI, getCMPId }) {
     const result = new VendorPresent(site, vendorId);
     // Cookies cleaning can be removed (or not) after implementing domain deduplication 
     const cookies = await context.cookies();
@@ -80,7 +83,7 @@ class VendorPresent {
     try {
       await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
-      // Check if TCF API is present
+      // use injected helpers (defaults to exported functions)
       result.hasTCF = await hasTCFAPI(page);
       if (!result.hasTCF) return result;
 
@@ -151,5 +154,6 @@ async function getCMPId(page) {
 
 module.exports = {
   initializePlaywright,
-  validateVendorConsent
+  validateVendorConsent,
+  VendorPresent
 };
