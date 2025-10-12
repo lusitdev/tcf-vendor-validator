@@ -59,7 +59,7 @@ class VendorPresent {
     this.vendorId = vendorId;
     this.hasTCF = null;
     this.cmpId = null;
-    this.vendorPresent = null;
+    this.vendorIsPresent = null;
     this.timestamp = null;
     this.error = null;
   }
@@ -73,8 +73,10 @@ class VendorPresent {
    * @param {function} checks.getCMPId - Function to retrieve the CMP ID.
    * @returns {Promise<Object>} Validation result for the site.
    */
+
   static async check(context, site, vendorId, { hasTCFAPI, getCMPId }) {
     const result = new VendorPresent(site, vendorId);
+
     // Cookies cleaning can be removed (or not) after implementing domain deduplication 
     const cookies = await context.cookies();
     if (cookies.length) await context.clearCookies();
@@ -83,15 +85,14 @@ class VendorPresent {
     try {
       await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
-      // use injected helpers (defaults to exported functions)
+      // use injected functions due to testin
+      result.hasTCF = false; // should be false if hasTCFAPI throws
       result.hasTCF = await hasTCFAPI(page);
-      if (!result.hasTCF) return result;
-
       result.cmpId = await getCMPId(page);
 
-      result.vendorPresent = await CMPService.init(page, result.cmpId, vendorId).run();
-    } catch (error) {
-      result.error = error.message;
+      result.vendorIsPresent = await CMPService.init(page, result.cmpId, vendorId).run();
+    } catch (e) {
+      result.error = e.message;
     } finally {
       await page.close();
 
@@ -108,13 +109,11 @@ class VendorPresent {
  */
 async function hasTCFAPI(page) {
   try {
-    const hasAPI = await page.waitForFunction(() => {
+    return hasAPI = await page.waitForFunction(() => {
       return typeof window.__tcfapi === 'function';
     });
-
-    return Boolean(hasAPI);
-  } catch {
-    return false;
+  } catch (e) {
+    throw new Error(`hasTCFAPI failed: ${e.message}`);
   }
 }
 

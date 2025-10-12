@@ -32,7 +32,7 @@ function generateCSV(results) {
     result.vendorId,
     String(result.hasTCF ?? 'N/A'),
     result.cmpId || 'N/A',
-    String(result.vendorPresent ?? 'N/A'),
+    String(result.vendorIsPresent ?? 'N/A'),
     result.timestamp || 'N/A',
     result.error ? cleanError(result.error) : 'N/A'
   ]);

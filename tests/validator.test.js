@@ -40,7 +40,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
       vendorId,
       hasTCF: false,
       cmpId: null,
-      vendorPresent: null,
+      vendorIsPresent: null,
     });
     expect(result.timestamp).toBeTruthy();
     expect(mockHas).toHaveBeenCalled();
@@ -57,7 +57,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBeNull();
-    expect(result.vendorPresent).toBeNull();
+    expect(result.vendorIsPresent).toBeNull();
     expect(result.error).toMatch(/TCF API ping failed/);
     expect(result.timestamp).toBeTruthy();
     expect(mockHas).toHaveBeenCalled();
@@ -78,12 +78,12 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);
-    expect(result.vendorPresent).toBeNull();
+    expect(result.vendorIsPresent).toBeNull();
     expect(result.error).toMatch(/CMP ID 999 not yet added/);
     expect(result.timestamp).toBeTruthy();
   });
 
-  it('returns vendorPresent=true on successful flow (mocked CMPService)', async () => {
+  it('returns vendorIsPresent=true on successful flow (mocked CMPService)', async () => {
     const site = 'http://example/success-mocked-cmp';
     const fakeContext = makeFakeContext();
     const testCmpId = 300;
@@ -97,12 +97,12 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);
-    expect(result.vendorPresent).toBe(true);
+    expect(result.vendorIsPresent).toBe(true);
     expect(result.error).toBeNull();
     expect(result.timestamp).toBeTruthy();
   });
 
-  it('returns vendorPresent=false when CMPService reports vendor absent', async () => {
+  it('returns vendorIsPresent=false when CMPService reports vendor absent', async () => {
     const site = 'http://example/vendor-absent';
     const fakeContext = makeFakeContext();
     const testCmpId = 300;
@@ -116,7 +116,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);
-    expect(result.vendorPresent).toBe(false);
+    expect(result.vendorIsPresent).toBe(false);
     expect(result.error).toBeNull();
     expect(result.timestamp).toBeTruthy();
   });
