@@ -1,28 +1,14 @@
 const { CMPService } = require('../src/CMPService');
-const { initializePlaywright } = require('../src/validator');
+const { makeFakePage } = require('./helpers/fakePage');
 
 describe('clickConsentTcf', () => {
-  let browser;
   let page;
   let service;
 
-  beforeAll(async () => {
-    browser = await initializePlaywright();
-  }, 30000);
-
-  afterAll(async () => {
-    await browser.close();
-  });
-
   beforeEach(async () => {
-    const context = await browser.newContext();
-    page = await context.newPage();
+    page = makeFakePage();
     // create a CMPService instance (cmpId and vendorId are unused by clickConsentButton)
     service = CMPService.init(page, 1, 999);
-  });
-
-  afterEach(async () => {
-    await page.context().close();
   });
 
   it('should click element with single selector', async () => {

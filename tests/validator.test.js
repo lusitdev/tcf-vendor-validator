@@ -1,6 +1,7 @@
 const validator = require('../src/validator');
 const { VendorPresent } = validator;
 const { CMPService } = require('../src/CMPService');
+const { makeFakePage } = require('./helpers/fakePage');
 
 // Pragmatic unit tests: use injected helpers and a tiny fake context so tests run
 // fast and deterministically without launching Playwright.
@@ -14,10 +15,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
   // Minimal fake context that mimics the small subset used by VendorPresent.check
   const makeFakeContext = () => {
-    const fakePage = {
-      goto: jest.fn(async () => {}),
-      close: jest.fn(async () => {})
-    };
+    const fakePage = makeFakePage();
 
     return {
       cookies: async () => [],
