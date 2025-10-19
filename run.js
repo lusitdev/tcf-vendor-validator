@@ -35,7 +35,31 @@ for (const a of rawArgs) {
 
 const headless = !headfull;
 const vendorId = vendorIdArg ? parseInt(vendorIdArg, 10) : defaultConfig.vendorId;
-const siteListPath = siteListArg || path.join(__dirname, 'sitelists', defaultConfig.siteList);
+
+let siteListPath;
+if (siteListArg) {
+  const asGiven = path.isAbsolute(siteListArg) ? siteListArg : path.join(process.cwd(), siteListArg);
+  if (fs.existsSync(asGiven)) {
+    siteListPath = asGiven;
+  } else {
+    const inSitelists = path.join(__dirname, 'sitelists', siteListArg);
+    if (fs.existsSync(inSitelists)) {
+      siteListPath = inSitelists;
+    } else if (!path.extname(siteListArg)) {
+      const inSitelistsTxt = path.join(__dirname, 'sitelists', `${siteListArg}.txt`);
+      if (fs.existsSync(inSitelistsTxt)) {
+        siteListPath = inSitelistsTxt;
+      } else {
+        // keep the original attempts for debugging
+        siteListPath = asGiven;
+      }
+    } else {
+      siteListPath = asGiven;
+    }
+  }
+} else {
+  siteListPath = path.join(__dirname, 'sitelists', defaultConfig.siteList);
+}
 
 // Validate inputs
 if (isNaN(vendorId) || vendorId <= 0) {

@@ -23,8 +23,8 @@ node run.js --headfull 30 sitelist.txt
 
 ### Arguments
 
-- `<vendorId>` (required) - TCF vendor ID (integer > 0). Falls back to `config.yml` if omitted.
-- `[siteListPath]` (optional) - Path to newline-separated site list. Defaults to `sitelists/sitelist.txt` from `config.yml`.
+- `<vendorId>` (required) - TCF vendor ID (integer > 0). Falls back to `config.yml`.
+- `[siteListPath]` (optional) - Path to a newline-separated site list. If only a filename is given, the file is looked up in the project's `sitelists/` directory. Defaults to `sitelists/sitelist.txt` from `config.yml`.
 
 ### Flags
 
