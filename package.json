@@ -1,6 +1,6 @@
 {
   "name": "tcf-vendor-validator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Utility script that verifies whether consent for specified TCF vendor is being collected by CMP across a list of websites.",
   "main": "./run.js",
   "bin": {
