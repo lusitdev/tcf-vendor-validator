@@ -21,6 +21,7 @@ class CMPService {
     28: { selector: '#onetrust-accept-btn-handler' },
     31: { selector: '.cmptxt_btn_yes' },
     68: { selector: '.unic-modal-content button:nth-of-type(2)' },
+    134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
     300: { selector: '.fc-cta-consent' },
     374: { selector: '#cookiescript_accept' },
