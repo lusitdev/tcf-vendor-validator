@@ -1,19 +1,19 @@
 const validator = require('../src/validator');
-const { VendorPresent } = validator;
+const { SiteChecker } = validator;
 const { CMPService } = require('../src/CMPService');
 const { makeFakePage } = require('./helpers/fakePage');
 
 // Pragmatic unit tests: use injected helpers and a tiny fake context so tests run
 // fast and deterministically without launching Playwright.
 
-describe('VendorPresent.check - unit tests with injected helpers', () => {
+describe('SiteChecker.run - unit tests with injected helpers', () => {
   const vendorId = 42;
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  // Minimal fake context that mimics the small subset used by VendorPresent.check
+  // Minimal fake context that mimics the small subset used by SiteChecker.run
   const makeFakeContext = () => {
     const fakePage = makeFakePage();
 
@@ -33,7 +33,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
     const mockHas = jest.fn().mockResolvedValue(false);
     const mockGet = jest.fn().mockImplementation(async () => { throw new Error('Timeout: test'); });
 
-    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+    const result = await SiteChecker.run(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
     expect(result).toMatchObject({
       site,
@@ -53,7 +53,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
     const mockHas = jest.fn().mockResolvedValue(true);
     const mockGet = jest.fn().mockImplementation(async () => { throw new Error('TCF API ping failed: test'); });
 
-    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+    const result = await SiteChecker.run(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBeNull();
@@ -74,7 +74,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => { throw new Error(`CMP ID ${testCmpId} not yet added`); } }));
 
-    const result = await VendorPresent.check(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
+    const result = await SiteChecker.run(fakeContext, site, vendorId, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);
@@ -93,7 +93,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => true }));
 
-    const result = await VendorPresent.check(fakeContext, site, 755, { hasTCFAPI: mockHas, getCMPId: mockGet });
+    const result = await SiteChecker.run(fakeContext, site, 755, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);
@@ -112,7 +112,7 @@ describe('VendorPresent.check - unit tests with injected helpers', () => {
 
     jest.spyOn(CMPService, 'init').mockImplementation(() => ({ executeStrategy: async () => false }));
 
-    const result = await VendorPresent.check(fakeContext, site, 999, { hasTCFAPI: mockHas, getCMPId: mockGet });
+    const result = await SiteChecker.run(fakeContext, site, 999, { hasTCFAPI: mockHas, getCMPId: mockGet });
 
     expect(result.hasTCF).toBe(true);
     expect(result.cmpId).toBe(testCmpId);

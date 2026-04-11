@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium, errors } = require('playwright');
 const { parseSiteList } = require('./utils');
 const { CMPService } = require('./CMPService');
 
@@ -40,8 +40,8 @@ async function validateSitesForVendor(vendorId, siteListPath, options = {}) {
     for (const site of sites) {
       console.log(`Validating ${site} for TCF Vendor ID ${vendorId} consent...`);
 
-      const result = await VendorPresent
-        .check(context, site, vendorId, { hasTCFAPI, getCMPId });
+      const result = await SiteChecker
+        .run(context, site, vendorId, { hasTCFAPI, getCMPId });
         
       results.push(result);
     }
@@ -55,7 +55,7 @@ async function validateSitesForVendor(vendorId, siteListPath, options = {}) {
   return results;
 }
 
-class VendorPresent {
+class SiteChecker {
   constructor(site, vendorId) {
     this.site = site;
     this.vendorId = vendorId;
@@ -76,8 +76,8 @@ class VendorPresent {
    * @returns {Promise<Object>} Validation result for the site.
    */
 
-  static async check(context, site, vendorId, { hasTCFAPI, getCMPId }) {
-    const result = new VendorPresent(site, vendorId);
+  static async run(context, site, vendorId, { hasTCFAPI, getCMPId }) {
+    const result = new SiteChecker(site, vendorId);
 
     // Cookies cleaning can be removed (or not) after implementing domain deduplication 
     const cookies = await context.cookies();
@@ -88,8 +88,9 @@ class VendorPresent {
       await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
       // use injected functions due to testin
-      result.hasTCF = false; // should be false if hasTCFAPI throws
+      /* result.hasTCF = false; // should be false if hasTCFAPI throws */
       result.hasTCF = await hasTCFAPI(page);
+      if (!result.hasTCF) return;
       result.cmpId = await getCMPId(page);
 
       result.vendorIsPresent = await CMPService
@@ -111,12 +112,28 @@ class VendorPresent {
  * @param {Page} page - Playwright page instance.
  * @returns {Promise<boolean>} True if TCF API is detected.
  */
-async function hasTCFAPI(page) {
+async function hasTCFAPI(page, timeout = 5000) {
+  const checkTCFAPI = async context => {
+    return await context.waitForFunction(
+      () => typeof window.__tcfapi === 'function',
+      { timeout }
+    );
+  }
   try {
-    return hasAPI = await page.waitForFunction(() => {
-      return typeof window.__tcfapi === 'function';
-    });
+    let tcfStatus = await checkTCFAPI(page);
+    if (tcfStatus) return tcfStatus;
+    for (frame of page.frames()) {
+      tcfStatus = await checkTCFAPI(frame);
+      if (tcfStatus) continue;
+    }
+    if (tcfStatus) return tcfStatus;
+    // add shadow dom logic
+    return tcfStatus;
+
   } catch (e) {
+    /* if (e instanceof errors.TimeoutError) {
+      return { status: false }
+    } */
     throw new Error(`hasTCFAPI failed: ${e.message}`);
   }
 }
@@ -158,5 +175,5 @@ async function getCMPId(page) {
 module.exports = {
   initializePlaywright,
   validateSitesForVendor,
-  VendorPresent
+  SiteChecker
 };
