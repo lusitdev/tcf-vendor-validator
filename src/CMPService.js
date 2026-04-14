@@ -89,11 +89,7 @@ class CMPService {
     // Extract the actual object from JSHandle
     const tcfData = await tcfDataHandle.jsonValue(); 
 
-    if (tcfData?.vendor?.consents) {
-      return this.vendorId in tcfData.vendor.consents;
-    }
-    
-    throw new Error('Failed to get vendor consents after consent button click');
+    return this.validateVendor(tcfData);
   }
 
   /**
@@ -160,6 +156,19 @@ class CMPService {
     await client.detach();
 
     return this.checkByTCFAPI();
+  }
+
+  validateVendor(tcObject) {
+    try {
+      // tcf v 2.3
+      if (tcObject.tcfPolicyVersion >= 4 && tcObject.vendor.disclosedVendors) {
+        return tcObject.vendor.disclosedVendors[this.vendorId] ?? false;
+      }
+      // old tcf
+      return tcObject.vendor.consents[this.vendorId] ?? false;
+    } catch (e) {
+      throw new Error(`tcObject invalid: ${e}`)
+    }
   }
 }
 
