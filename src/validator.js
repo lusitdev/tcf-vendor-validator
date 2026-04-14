@@ -112,30 +112,28 @@ class SiteChecker {
  * @param {Page} page - Playwright page instance.
  * @returns {Promise<boolean>} True if TCF API is detected.
  */
-async function hasTCFAPI(page, timeout = 5000) {
-  const checkTCFAPI = async context => {
-    return await context.waitForFunction(
-      () => typeof window.__tcfapi === 'function',
-      { timeout }
-    );
-  }
-  try {
-    let tcfStatus = await checkTCFAPI(page);
-    if (tcfStatus) return tcfStatus;
-    for (frame of page.frames()) {
-      tcfStatus = await checkTCFAPI(frame);
-      if (tcfStatus) continue;
+async function hasTCFAPI(page) {
+  const check = async context => {
+    try {
+      return await context.evaluate(
+        () => typeof window.__tcfapi === 'function'
+      );
+    } catch (e) {
+      throw new Error(`hasTCFAPI failed: ${e.message}`);
     }
-    if (tcfStatus) return tcfStatus;
-    // add shadow dom logic
-    return tcfStatus;
-
-  } catch (e) {
-    /* if (e instanceof errors.TimeoutError) {
-      return { status: false }
-    } */
-    throw new Error(`hasTCFAPI failed: ${e.message}`);
   }
+  
+  // Check main page
+  if (await check(page)) return true;
+
+  // Check all frames
+  for (const frame of page.frames()) {
+      if (await check(frame)) return true;
+  }
+
+  // add shadow dom logic?
+
+  return false;
 }
 
 /**
