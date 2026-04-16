@@ -1,4 +1,4 @@
-const { chromium, errors } = require('playwright');
+const { chromium, devices, errors } = require('playwright');
 const { parseSiteList } = require('./utils');
 const { CMPService } = require('./CMPService');
 
@@ -17,7 +17,9 @@ async function initializePlaywright(options = {}) {
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
-      '--disable-dev-shm-usage'
+      '--disable-dev-shm-usage',
+      // features to avoid bot filters
+      // '--disable-features=IsolateOrigins,site-per-process',
     ]
   });
   
@@ -31,7 +33,11 @@ async function initializePlaywright(options = {}) {
  */
 async function validateSitesForVendor(vendorId, siteListPath, options = {}) {
   const browser = await initializePlaywright(options);
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    ...devices['Desktop Chrome'],
+    // some CMPs doesn't load without viewport definition
+    viewport: { width: 1280, height: 720 },
+  });
 
   const sites = parseSiteList(siteListPath);
   const results = [];
@@ -86,7 +92,9 @@ class SiteChecker {
 
     try {
       await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
-
+      // emulate user
+      await page.mouse.move(100, 100);
+      await page.evaluate(() => window.scrollBy(0, 100));
       // use injected functions due to testin
       /* result.hasTCF = false; // should be false if hasTCFAPI throws */
       result.hasTCF = await hasTCFAPI(page);
@@ -141,30 +149,29 @@ async function hasTCFAPI(page) {
  * @returns {Promise<string>} CMP ID.
  */
 async function getCMPId(page) {
-  const tcfPing = async page => {
-    const cmpData = await page.evaluate(() => {
-      return new Promise(r => {
-        window.__tcfapi('ping', 2, r);
-      });
+  const start = Date.now();
+  const step = 500;
+  const timeout = 1e4;
+
+  async function pollForCMPId() {
+    if (Date.now() - start > timeout) throw new Error('pollForCMPId timeout');
+    /* const result = await page.evaluate(
+      async () => await new Promise(r => window.__tcfapi('ping', 2, r))
+    ); */
+    const result = await page.evaluate(() => {
+      let pData;
+      window.__tcfapi('ping', 2, d => pData = d);
+      return pData;
     });
+    if (result.cmpId) return result.cmpId;
+    console.log("pData: " + JSON.stringify(result));
+    await new Promise(r => setTimeout(r, step));
+    return pollForCMPId();
+  }
 
-    return (cmpData?.cmpId) ? cmpData.cmpId : null;
-  };
-
-  // Retries are necessary on some websites.
   try {
-    const start = Date.now();
-    const timeout = 90000;
-    const pingPace = 1000;
-
-    while (Date.now() < start + timeout) {
-      const cmpId = await tcfPing(page);
-      if (cmpId) return cmpId;
-      await new Promise(r => setTimeout(r, pingPace));
-    }
-
-    throw new Error('Timeout');
-  } catch (e) {
+    return pollForCMPId();
+  } catch(e) {
     console.error('Error in getCMPId:', e);
     throw new Error(`TCF API ping failed: ${e.message}`);
   }
