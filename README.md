@@ -13,12 +13,9 @@ Requires Node.js >= 18.
 ## Usage
 
 ```bash
-npm run validate 30                    # headless mode, vendor ID 30
-npm run validate --headfull 30         # visible browser mode
-
-# direct invocation
-node run.js 30
-node run.js --headfull 30 sitelist.txt
+node run.js 30                         # headless mode, vendor ID 30
+node run.js --headfull 30              # visible browser mode
+node run.js --headfull 30 sitelist.txt # with custom site list
 ```
 
 ### Arguments
