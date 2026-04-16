@@ -170,7 +170,7 @@ async function getCMPId(page) {
   }
 
   try {
-    return pollForCMPId();
+    return await pollForCMPId();
   } catch(e) {
     console.error('Error in getCMPId:', e);
     throw new Error(`TCF API ping failed: ${e.message}`);
