@@ -36,7 +36,7 @@ async function validateSitesForVendor(vendorId, siteListPath, options = {}) {
   const context = await browser.newContext({
     ...devices['Desktop Chrome'],
     // some CMPs doesn't load without viewport definition
-    viewport: { width: 1280, height: 720 },
+    viewport: { width: 1536, height: 695 },
   });
 
   const sites = parseSiteList(siteListPath);
