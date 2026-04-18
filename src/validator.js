@@ -92,11 +92,10 @@ class SiteChecker {
 
     try {
       await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 90000 });
-      // emulate user
-      await page.mouse.move(100, 100);
-      await page.evaluate(() => window.scrollBy(0, 100));
-      // use injected functions due to testin
-      /* result.hasTCF = false; // should be false if hasTCFAPI throws */
+      // sometimes redirects occurs to sites dedicated to consent window
+      // some pages are never networkidle hence timeout with silent catch
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+
       result.hasTCF = await hasTCFAPI(page);
       if (!result.hasTCF) return;
       result.cmpId = await getCMPId(page);
