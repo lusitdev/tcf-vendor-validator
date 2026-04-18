@@ -39,7 +39,8 @@ class CMPService {
 
       // default approach
       await this.clickConsentButton(strategy.selector, strategy.frame ?? null);
-      return this.checkByTCFAPI();
+      // when pages reloads after click
+      await this.page.waitForFunction(() => typeof window.__tcfapi === 'function', { timeout: 10000 }); 
     }
 
     return this[strategy.custom](strategy.selector ?? null);
@@ -60,7 +61,7 @@ class CMPService {
         const locator = context.locator(selector);
         await locator.waitFor({ state: 'visible' , timeout: this.defaultTimeout });
         console.log(`Found: ${selector}`);
-        await locator.click({ timeout: this.defaultTimeout });
+        await locator.click({ timeout: this.defaultTimeout, noWaitAfter: true });
         console.log(`Clicked button: ${selector}`);
         return;
       } catch {
