@@ -50,9 +50,52 @@ function cleanError(err) {
     .replace(/"/g, '""');
 }
 
+async function pollTCFAPI(page, command, timeout, target) {
+  const start = Date.now();
+  const step = 500;
+  let i = 0;
+
+  async function poll() {
+    let result;
+    if (Date.now() - start > timeout) throw new Error('timeout');
+    try {
+      result = await page.evaluate(c => {
+        switch (c) {
+
+          case 'ping':
+            let pData;
+            window.__tcfapi('ping', 2, d => pData = d);
+            return pData;
+
+          case 'addEventListener':
+            return new Promise(r => {
+              window.__tcfapi('addEventListener', 2, (tcData, success) => {
+              // useractioncomplete event may be missed or not used
+                if (success && ((tcData.eventStatus === 'useractioncomplete' || tcData.eventStatus === 'tcloaded'))) {
+                  window.__tcfapi('removeEventListener', 2, () => {}, tcData.listenerId);
+                  r(tcData);
+                }
+              });
+            });
+          }
+      }, 
+      command)
+    } catch(e) {
+      // Suppress error when page context is destroyed to continue polling
+    }
+
+    if (result?.[target]) return result;
+    await new Promise(r => setTimeout(r, step));
+    return poll();
+  }
+
+  return await poll();
+}
+
 
 module.exports = { 
   parseSiteList,
   generateCSV,
-  cleanError
+  cleanError,
+  pollTCFAPI
 };

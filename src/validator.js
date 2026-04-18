@@ -1,5 +1,5 @@
 const { chromium, devices, errors } = require('playwright');
-const { parseSiteList } = require('./utils');
+const { parseSiteList, pollTCFAPI } = require('./utils');
 const { CMPService } = require('./CMPService');
 
 /**
@@ -148,31 +148,11 @@ async function hasTCFAPI(page) {
  * @returns {Promise<string>} CMP ID.
  */
 async function getCMPId(page) {
-  const start = Date.now();
-  const step = 500;
-  const timeout = 1e4;
-
-  async function pollForCMPId() {
-    if (Date.now() - start > timeout) throw new Error('pollForCMPId timeout');
-    /* const result = await page.evaluate(
-      async () => await new Promise(r => window.__tcfapi('ping', 2, r))
-    ); */
-    const result = await page.evaluate(() => {
-      let pData;
-      window.__tcfapi('ping', 2, d => pData = d);
-      return pData;
-    });
-    if (result.cmpId) return result.cmpId;
-    console.log("pData: " + JSON.stringify(result));
-    await new Promise(r => setTimeout(r, step));
-    return pollForCMPId();
-  }
-
   try {
-    return await pollForCMPId();
+    const pData= await pollTCFAPI(page, 'ping', 1e4, 'cmpId');
+    return pData.cmpId;
   } catch(e) {
-    console.error('Error in getCMPId:', e);
-    throw new Error(`TCF API ping failed: ${e.message}`);
+    throw `TCF API ping failed: ${e.message}`;
   }
 }
 
