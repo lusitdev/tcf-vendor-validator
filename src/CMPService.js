@@ -1,3 +1,5 @@
+const { pollTCFAPI } = require('./utils');
+
 class CMPService {
   constructor(page, cmpId, vendorId) {
     this.page = page;
@@ -76,20 +78,12 @@ class CMPService {
    * @returns {Promise<boolean>} True if consent status collected for the vendorId.
    */
   async checkByTCFAPI() {
-    await this.page.waitForLoadState('domcontentloaded', { timeout: this.defaultTimeout });
-
-    const tcfDataHandle = await this.page.waitForFunction(() => {
-      return new Promise((resolve) => {
-        window.__tcfapi('addEventListener', 2, (tcData, success) => {
-          if (success && tcData.eventStatus === 'useractioncomplete') resolve(tcData);
-        });
-      });
-    }, { timeout: this.defaultTimeout });
-    
-    // Extract the actual object from JSHandle
-    const tcfData = await tcfDataHandle.jsonValue(); 
-
-    return this.validateVendor(tcfData);
+    try {
+      const tcfData = await pollTCFAPI(this.page, 'addEventListener', 9999, 'vendor');
+      return this.validateVendor(tcfData); 
+    } catch(e) {
+      throw new Error(`checkByTCFAPI: ${e.message}`);
+    }
   }
 
   /**
