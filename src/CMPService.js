@@ -17,16 +17,21 @@ class CMPService {
   }
   
   strategies = {
+    5: { selector: { attribute: 'data-testid', value: 'uc-accept-all-button' } },
     6: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     7: { custom: 'checkByDidomiAPI' },
     10: { selector: '.qc-cmp2-summary-buttons button[mode=primary]' },
     28: { selector: '#onetrust-accept-btn-handler' },
     31: { selector: '.cmptxt_btn_yes' },
     68: { selector: '.unic-modal-content button:nth-of-type(2)' },
+    72: { selector: '.ulv5cww .z1lwc6s .us9u54n'},
+    112: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
+    280: { selector: '.cmp-intro_acceptAll' },
     300: { selector: '.fc-cta-consent' },
     309: { selector: '#gdpr-banner-accept' },
+    345: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     355: { selector: '#btn-eiS3ai-consent-all' },
     374: { selector: '#cookiescript_accept' },
     397: { selector: '._consent-accept_1lphq_114' },
