@@ -45,6 +45,7 @@ class CMPService {
       await this.clickConsentButton(strategy.selector, strategy.frame ?? null);
       // when pages reloads after click
       await this.page.waitForFunction(() => typeof window.__tcfapi === 'function', { timeout: 10000 }); 
+      return this.checkByTCFAPI();
     }
 
     return this[strategy.custom](strategy.selector ?? null);
