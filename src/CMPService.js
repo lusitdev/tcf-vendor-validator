@@ -26,8 +26,12 @@ class CMPService {
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
     300: { selector: '.fc-cta-consent' },
+    309: { selector: '#gdpr-banner-accept' },
+    355: { selector: '#btn-eiS3ai-consent-all' },
     374: { selector: '#cookiescript_accept' },
-    401: { selector: '.cky-notice-btn-wrapper .cky-btn-accept' }
+    397: { selector: '._consent-accept_1lphq_114' },
+    401: { selector: '.cky-notice-btn-wrapper .cky-btn-accept' },
+    411: { selector: '#pg-accept-btn'}
   }
 
   async executeStrategy() {
