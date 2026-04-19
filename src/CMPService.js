@@ -17,7 +17,7 @@ class CMPService {
   }
   
   strategies = {
-    5: { selector: { attribute: 'data-testid', value: 'uc-accept-all-button' } },
+    5: { selector: '[data-testid="uc-accept-all-button"]' },
     6: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     7: { custom: 'checkByDidomiAPI' },
     10: { selector: '.qc-cmp2-summary-buttons button[mode=primary]' },
