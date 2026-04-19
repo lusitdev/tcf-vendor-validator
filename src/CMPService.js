@@ -17,6 +17,7 @@ class CMPService {
   }
   
   strategies = {
+    // if frame param is array, next iframe must be child of previous
     5: { selector: '[data-testid="uc-accept-all-button"]' },
     6: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     7: { custom: 'checkByDidomiAPI' },
@@ -29,7 +30,7 @@ class CMPService {
     72: { selector: 'button', hasText: [ 'Akceptuję i przechodzę do serwisu' ] },
     112: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
-    167: { selector: '[data-id="accept-button"]' },
+    167: { selector: '#save-all-pur', frame: ['iframe.permission-core-iframe', 'iframe'] },
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
     280: { selector: '.cmp-intro_acceptAll' },
     300: { selector: '.fc-cta-consent' },
@@ -68,7 +69,8 @@ class CMPService {
    */
   async clickConsentButton(selectors, frame, hasText) {
     const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
-    const context = frame ? this.page.frameLocator(frame) : this.page;
+    const frames = frame ? (Array.isArray(frame) ? frame : [frame]) : [];
+    const context = frames.reduce((ctx, f) => ctx.frameLocator(f), this.page);
 
     const locatorArgs = selectorArray.flatMap(s => hasText ?
       hasText.map(t => [s, { hasText: t }]) :
