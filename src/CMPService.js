@@ -19,16 +19,16 @@ class CMPService {
   strategies = {
     // if frame param is array, next iframe must be child of previous
     5: { selector: '[data-testid="uc-accept-all-button"]' },
-    6: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
+    6: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     7: { custom: 'checkByDidomiAPI' },
     10: { selector: '.qc-cmp2-summary-buttons button[mode=primary]' },
     21: { selector: '.cmp-button-accept-all' },
     28: { selector: '#onetrust-accept-btn-handler' },
     31: { selector: '.cmptxt_btn_yes' },
-    35: { selector: '.sp_choice_type_11' },
+    35: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     68: { selector: '.unic-modal-content button:nth-of-type(2)' },
     72: { selector: 'button', hasText: [ 'Akceptuję i przechodzę do serwisu' ] },
-    112: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
+    112: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     167: { selector: '#save-all-pur', frame: ['iframe.permission-core-iframe', 'iframe'] },
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
@@ -36,7 +36,7 @@ class CMPService {
     300: { selector: '.fc-cta-consent' },
     309: { selector: '#gdpr-banner-accept' },
     329: { selector: '#cmp-btn-accept' },
-    345: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
+    345: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     355: { selector: '#btn-eiS3ai-consent-all' },
     374: { selector: '#cookiescript_accept' },
     397: { selector: '._consent-accept_1lphq_114' },
@@ -69,6 +69,7 @@ class CMPService {
    */
   async clickConsentButton(selectors, frame, hasText) {
     const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+
     const frames = frame ? (Array.isArray(frame) ? frame : [frame]) : [];
     const context = frames.reduce((ctx, f) => ctx.frameLocator(f), this.page);
 
@@ -77,19 +78,26 @@ class CMPService {
       [[s]]
     );
 
+    const errors = [];
+
     for (const arg of locatorArgs) {
       try {
         const locator = context.locator(...arg);
+
         await locator.waitFor({ state: 'visible' , timeout: this.defaultTimeout });
         console.log(`Found: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
+
         await locator.click({ timeout: this.defaultTimeout, noWaitAfter: true });
         console.log(`Clicked button: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
         return;
-      } catch { continue; }
+      } catch(e) { 
+        errors.push(e.message);
+        continue; 
+      }
     }
 
     const failedSelectors = Array.isArray(selectors) ? selectors.join(' | ') : selectors;
-    throw new Error(`No consent button found with selectors: ${failedSelectors}`);
+    throw new Error(`Failed to click consent button by query ${failedSelectors}: ${errors}`);
   }
 
   /**
