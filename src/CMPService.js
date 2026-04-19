@@ -84,9 +84,6 @@ class CMPService {
       try {
         const locator = context.locator(...arg);
 
-        await locator.waitFor({ state: 'visible' , timeout: this.defaultTimeout });
-        console.log(`Found: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
-
         await locator.click({ timeout: this.defaultTimeout, noWaitAfter: true });
         console.log(`Clicked button: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
         return;
