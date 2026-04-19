@@ -24,7 +24,7 @@ class CMPService {
     28: { selector: '#onetrust-accept-btn-handler' },
     31: { selector: '.cmptxt_btn_yes' },
     68: { selector: '.unic-modal-content button:nth-of-type(2)' },
-    72: { selector: '.ulv5cww .z1lwc6s .us9u54n'},
+    72: { selector: 'button', hasText: [ 'Akceptuję i przechodzę do serwisu' ] },
     112: { selector: '.sp_choice_type_11', frame: '[id^="sp_message_iframe"]' },
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     247: { custom: 'clickShadowButtonWithCDP', selector: { attribute: 'data-testid', value: 'button-agree'} },
@@ -47,7 +47,7 @@ class CMPService {
       if (!strategy.selector) throw new Error(`CMP ID ${this.cmpId} has no selector defined`);
 
       // default approach
-      await this.clickConsentButton(strategy.selector, strategy.frame ?? null);
+      await this.clickConsentButton(strategy.selector, strategy.frame ?? null, strategy.hasText ?? null);
       // when pages reloads after click
       await this.page.waitForFunction(() => typeof window.__tcfapi === 'function', { timeout: 10000 }); 
       return this.checkByTCFAPI();
@@ -62,22 +62,24 @@ class CMPService {
    * @returns {Promise<void>} Resolves when button is successfully clicked.
    * @throws {Error} If no selector matches any clickable element within timeout.
    */
-  async clickConsentButton(selectors, frame) {
+  async clickConsentButton(selectors, frame, hasText) {
     const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
     const context = frame ? this.page.frameLocator(frame) : this.page;
 
-    for (const selector of selectorArray) {
+    const locatorArgs = selectorArray.flatMap(s => hasText ?
+      hasText.map(t => [s, { hasText: t }]) :
+      [[s]]
+    );
+
+    for (const arg of locatorArgs) {
       try {
-        const locator = context.locator(selector);
+        const locator = context.locator(...arg);
         await locator.waitFor({ state: 'visible' , timeout: this.defaultTimeout });
-        console.log(`Found: ${selector}`);
+        console.log(`Found: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
         await locator.click({ timeout: this.defaultTimeout, noWaitAfter: true });
-        console.log(`Clicked button: ${selector}`);
+        console.log(`Clicked button: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
         return;
-      } catch {
-        // Try next selector
-        continue;
-      }
+      } catch { continue; }
     }
 
     const failedSelectors = Array.isArray(selectors) ? selectors.join(' | ') : selectors;
