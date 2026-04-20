@@ -18,7 +18,8 @@ class CMPService {
   
   strategies = {
     // if frame param is array, next iframe must be child of previous
-    5: { selector: '[data-testid="uc-accept-all-button"]' },
+    // 5: { selector: '[data-testid="uc-accept-all-button"]' }
+    5: { selector: [ ['a', { hasText: 'Zustimmen & weiter' }], '[data-testid="uc-accept-all-button"]' ] },
     6: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     7: { custom: 'checkByDidomiAPI' },
     10: { selector: '.qc-cmp2-summary-buttons button[mode=primary]' },
@@ -27,7 +28,7 @@ class CMPService {
     31: { selector: '.cmptxt_btn_yes' },
     35: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     68: { selector: '.unic-modal-content button:nth-of-type(2)' },
-    72: { selector: 'button', hasText: [ 'Akceptuję i przechodzę do serwisu' ] },
+    72: { selector:  [[ 'button', { hasText: 'Akceptuję i przechodzę do serwisu' } ]] },
     112: { selector: '.sp_choice_type_11:visible', frame: '[id^="sp_message_iframe"]' },
     134: { selector: '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'},
     167: { selector: '#save-all-pur', frame: ['iframe.permission-core-iframe', 'iframe'] },
@@ -68,24 +69,20 @@ class CMPService {
    * @throws {Error} If no selector matches any clickable element within timeout.
    */
   async clickConsentButton(selectors, frame, hasText) {
-    const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+    const locatorArgs = Array.isArray(selectors) ? selectors : [selectors];
 
     const frames = frame ? (Array.isArray(frame) ? frame : [frame]) : [];
-    const context = frames.reduce((ctx, f) => ctx.frameLocator(f), this.page);
-
-    const locatorArgs = selectorArray.flatMap(s => hasText ?
-      hasText.map(t => [s, { hasText: t }]) :
-      [[s]]
-    );
+    const context = frames.reduce((ctx, f) => ctx.frameLocator(f).last(), this.page);
 
     const errors = [];
 
     for (const arg of locatorArgs) {
       try {
-        const locator = context.locator(...arg);
+        const locator = Array.isArray(arg) ? context.locator(...arg).last() : context.locator(arg).last();
 
         await locator.click({ timeout: this.defaultTimeout, noWaitAfter: true });
-        console.log(`Clicked button: ${arg[0] + (arg[1] ? ': ' + JSON.stringify(arg[1]) : '')}`);
+        // need fix:
+        console.log(`Clicked button: ${Array.isArray(arg) ? JSON.stringify(arg) : arg}`);
         return;
       } catch(e) { 
         errors.push(e.message);
